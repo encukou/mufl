@@ -13,3 +13,4 @@ mksprite(15, 0, 1, 1, 'sea')
 
 mksprite(0, 1, 0.5, 0.5, 'fish_mouth')
 mksprite(0.5, 1, 0.5, 0.5, 'fin')
+mksprite(1, 1, 0.5, 0.5, 'bubble')

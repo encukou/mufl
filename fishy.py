@@ -103,7 +103,7 @@ class FishSpawner:
         self.height = self.scene.height
         self.layer = layer
         self.group = Group([])
-        self.sprite = layer.add_sprite('sea', anchor_y=0)
+        self.sprite = layer.add_sprite('sea', anchor_y=-0.5)
         self.sprite.scale_x = self.scene.width / 16
         self.sprite.scale_y = self.scene.height
         self.sprite.y = -self.scene.height
@@ -151,6 +151,16 @@ class Hook:
         self.pullout_speed = 200
         self.want_h = self.scene.height // 5
         self.caught_timer = 0
+        self.particle_group = layer.add_particle_group(
+            texture='bubble',
+            gravity=(0, 550),
+            max_age=1,
+            grow=0.5,
+        )
+        self.particle_group.add_color_stop(0, (1, 1, 1, 0))
+        self.particle_group.add_color_stop(0.25, (1, 1, 1, 0.5))
+        self.particle_group.add_color_stop(.5, (0.75, 0.9, 1, 0.5))
+        self.particle_group.add_color_stop(1, (0.9, 1, 1, 0))
 
     async def coro(self):
         space = True
@@ -197,10 +207,21 @@ class Hook:
             x = self.sprite.x + self.speed[0] * dt
             x = (x * 10 + self.scene.width * dt) / (10 + 2 * dt)
             if x < 0:
-                x = 0
+                x = 1
             if x >= self.scene.width:
                 x = self.scene.width
-            y =  self.sprite.y + self.speed[1] * dt
+            y = self.sprite.y + self.speed[1] * dt
+            if (y < 0) != (self.sprite.y < 0):
+                if 1or self.hooked_fish:
+                    self.particle_group.emit(
+                        abs(ys)/2, size=10, size_spread=10,
+                        vel_spread=(100, 50),
+                        vel=(0, -200-ys/2),
+                        angle_spread=tau,
+                        pos=self.sprite.pos + self.group.pos,
+                    )
+                else:
+                    y = 1
             self.sprite.pos = x, y
             self.line.pos = self.sprite.pos
             gpy = self.group.y
