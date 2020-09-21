@@ -229,6 +229,7 @@ class Hook:
                             animate(fish, cooldown=0)
                             animate(fish, speed=(xs * 2, ys), duration=4)
                             fish.reset_task()
+                            self.sprite.image = 'hook'
                         else:
                             self.catch_fish()
             else:
