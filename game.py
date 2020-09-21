@@ -3,7 +3,7 @@ from wasabi2d import animate, event, Scene, run, tone, keys
 
 from fishy import Fishing
 
-scene = Scene()
+scene = Scene(title='Cast Away!', icon='fish')
 scene.background = 0.9, 0.9, 1.0
 
 
