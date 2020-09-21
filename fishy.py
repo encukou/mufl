@@ -18,12 +18,12 @@ class Fishing:
             self, hook_layer, self.spawner.group, pos=(scene.width//2, 10),
         )
 
-        hud_layer.add_sprite('kbd_arrows', pos=(2, scene.height-74), anchor_x=0)
-        l=hud_layer.add_label('Move!', font='satisfy_regular', pos=(106, scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
-        l.scale = 1/2
-        hud_layer.add_sprite('kbd_space', pos=(2, scene.height-20), anchor_x=0)
-        l=hud_layer.add_label('Pull!', font='satisfy_regular', pos=(106, scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
-        l.scale = 1/2
+        #hud_layer.add_sprite('kbd_arrows', pos=(2, scene.height-74), anchor_x=0)
+        #l=hud_layer.add_label('Move!', font='satisfy_regular', pos=(106, scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
+        #l.scale = 1/2
+        #hud_layer.add_sprite('kbd_space', pos=(2, scene.height-20), anchor_x=0)
+        #l=hud_layer.add_label('Pull!', font='satisfy_regular', pos=(106, scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
+        #l.scale = 1/2
 
 
 class Fish:
@@ -46,7 +46,7 @@ class Fish:
         self.group.pos = pos
         if speed[0] >= 0:
             self.group.scale_x = -1
-        self.group.scale_y = 1 - abs(abs(speed[0])) / 500
+        self.group.scale_y = 1 - abs(abs(speed[0])) / 2000
         self.speed = speed
         self.task = None
         self.reset_task()
@@ -120,12 +120,13 @@ class FishSpawner:
     async def coro(self):
         await clock.coro.sleep(0.1)
         while True:
+            depth = abs(self.fishing.hook.sprite.y)
             if randrange(2):
                 x = 0 - MAX_FISH_WIDTH//2
-                sx = randrange(100) + 50
+                sx = randrange(100 + depth//50) + 50
             else:
                 x = self.width + MAX_FISH_WIDTH//2
-                sx = -randrange(100) - 50
+                sx = -randrange(100 + depth//50) - 50
             y = randrange(self.height * 4)
             if self.fishing.hook.hooked_fish:
                 y -= self.height * 3
