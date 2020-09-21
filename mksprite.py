@@ -10,6 +10,8 @@ mksprite(2, 0, 0.5, 1, 'hook')
 mksprite(2.5, 0, .5, 1, 'hook_in')
 
 mksprite(15, 0, 1, 1, 'sea')
+mksprite(12, 0, 1.5, 1, 'kbd_arrows')
+mksprite(13.5, 0, 1.5, 0.5, 'kbd_space')
 
 mksprite(0, 1, 0.5, 0.5, 'fish_mouth')
 mksprite(0.5, 1, 0.5, 0.5, 'fin')

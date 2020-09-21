@@ -10,13 +10,20 @@ MAX_FISH_WIDTH = 16*4*2
 FISH_SIZE = 16*1.5
 
 class Fishing:
-    def __init__(self, scene, fish_layer, hook_layer):
+    def __init__(self, scene, fish_layer, hook_layer, hud_layer):
         self.scene = scene
         self.hook = None
         self.spawner = FishSpawner(self, fish_layer)
         self.hook = Hook(
             self, hook_layer, self.spawner.group, pos=(scene.width//2, 10),
         )
+
+        hud_layer.add_sprite('kbd_arrows', pos=(2, scene.height-74), anchor_x=0)
+        l=hud_layer.add_label('Move!', font='satisfy_regular', pos=(106, scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
+        l.scale = 1/2
+        hud_layer.add_sprite('kbd_space', pos=(2, scene.height-20), anchor_x=0)
+        l=hud_layer.add_label('Pull!', font='satisfy_regular', pos=(106, scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
+        l.scale = 1/2
 
 
 class Fish:
@@ -196,6 +203,8 @@ class Hook:
             if x >= self.scene.width:
                 x = self.scene.width
             y = self.sprite.y + self.speed[1] * dt
+            if y < -self.scene.height * 10:
+                y = -self.scene.height * 10
             if (y < 0) != (self.sprite.y < 0):
                 if 1or self.hooked_fish:
                     self.particle_group.emit(
