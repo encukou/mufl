@@ -159,6 +159,7 @@ class Hook:
         self.pullout_speed = 200
         self.want_h = self.scene.height // 5
         self.caught_timer = 0
+        self.pull_timer = 0
         self.particle_group = layer.add_particle_group(
             texture='bubble',
             gravity=(0, 550),
@@ -223,9 +224,15 @@ class Hook:
             newy = self.want_h - self.sprite.y
             t = 1 - 2 / (1 + 1.05*exp(dt))
             gpy = gpy * (1-t) + newy * t
+            if self.hooked_fish:
+                t = self.pull_timer
+                if t > 1:
+                    t = 1
+                gpy = gpy * (1-t) + newy * t
             self.group.pos = 0, gpy
 
             if fish := self.caught_fish:
+                self.pull_timer += dt
                 fish.group.pos = self.sprite.pos
                 if not self.hooked_fish:
                     self.caught_timer -= dt
@@ -272,12 +279,12 @@ class Hook:
         animate(
             self, tween='accelerate', duration=15,
             pullout_speed=1000,
-            want_h=self.scene.height
         )
         animate(
             self, duration=3,
-            want_h=self.scene.height
+            want_h=self.scene.height // 2
         )
+        self.pull_timer = 0
 
     async def cool(self):
         await clock.coro.sleep(0.25)
