@@ -187,22 +187,7 @@ class Hook:
                 self.cooled_down = False
                 clock.coro.run(self.cool())
                 if self.caught_fish and not self.hooked_fish:
-                    self.hooked_fish = self.caught_fish
-                    self.hooked_fish.fin_task.cancel()
-                    if self.hooked_fish.speed[0] > 0:
-                        angle = -tau/4
-                    else:
-                        angle = tau/4
-                    animate(self.hooked_fish.group, angle=angle)
-                    animate(
-                        self, tween='accelerate', duration=15,
-                        pullout_speed=1000,
-                        want_h=self.scene.height
-                    )
-                    animate(
-                        self, duration=3,
-                        want_h=self.scene.height
-                    )
+                    self.catch_fish()
             space = keyboard.keyboard.space
             x = self.sprite.x + self.speed[0] * dt
             x = (x * 10 + self.scene.width * dt) / (10 + 2 * dt)
@@ -235,14 +220,17 @@ class Hook:
                 if not self.hooked_fish:
                     self.caught_timer -= dt
                     if self.caught_timer < 0:
-                        self.caught_fish = None
-                        fish.caught = False
-                        fish.cooldown = 1
-                        xs, ys = fish.speed
-                        fish.speed = xs * 4, ys
-                        animate(fish, cooldown=0)
-                        animate(fish, speed=(xs * 2, ys), duration=4)
-                        fish.reset_task()
+                        if randrange(5):
+                            self.caught_fish = None
+                            fish.caught = False
+                            fish.cooldown = 1
+                            xs, ys = fish.speed
+                            fish.speed = xs * 4, ys
+                            animate(fish, cooldown=0)
+                            animate(fish, speed=(xs * 2, ys), duration=4)
+                            fish.reset_task()
+                        else:
+                            self.catch_fish()
             else:
                 for fish in self.fishing.spawner.fishes:
                     dist = hypot(*(self.sprite.pos - fish.group.pos)) / (FISH_SIZE * 4)
@@ -261,6 +249,24 @@ class Hook:
                             fish.mouth_sprite.angle = (dist)-1
                     elif fish.mouth_sprite.angle != 0:
                         fish.mouth_sprite.angle = 0
+
+    def catch_fish(self):
+        self.hooked_fish = self.caught_fish
+        self.hooked_fish.fin_task.cancel()
+        if self.hooked_fish.speed[0] > 0:
+            angle = -tau/4
+        else:
+            angle = tau/4
+        animate(self.hooked_fish.group, angle=angle)
+        animate(
+            self, tween='accelerate', duration=15,
+            pullout_speed=1000,
+            want_h=self.scene.height
+        )
+        animate(
+            self, duration=3,
+            want_h=self.scene.height
+        )
 
     async def cool(self):
         await clock.coro.sleep(0.25)
