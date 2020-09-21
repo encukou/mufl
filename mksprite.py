@@ -2,4 +2,5 @@ from PIL import Image
 
 base = Image.open('pics.png')
 
-base.crop((0, 0, 16*8, 16*4)).save('images/fish.png')
+base.crop((64*0, 64*0, 64*2, 64*1)).save('images/fish.png')
+base.crop((64*2, 64*0, 64*3, 64*1)).save('images/hook.png')
