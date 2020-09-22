@@ -61,11 +61,15 @@ class Info:
     cube = VisualizedProperty()
 
     def give(self, sleep=0, **attrs):
+        attrs = {n: v for n, v in attrs.items() if v}
+        tasks = []
         w = 32
         h = 32
         total = sum(attrs.values())
         async def go(name, amount, row):
-            await clock.coro.sleep(row/5)
+            task = clock.coro.sleep(row/5)
+            tasks.append(task)
+            await task
             x = (self.scene.width - w * (amount+1)) // 2
             y = self.scene.height // 2 + h * (row - 2 - len(attrs))
             async def go_one(i):
@@ -77,9 +81,11 @@ class Info:
                 setattr(self, name, getattr(self, name) + 1)
                 await anim
                 sprite.delete()
+                tasks.append(anim)
             for i in range(amount):
                 await clock.coro.sleep(.1)
-                clock.coro.run(go_one(i))
+                task = clock.coro.run(go_one(i))
+                tasks.append(task)
 
         for row, (name, amount) in enumerate(attrs.items()):
             clock.coro.run(go(name, amount, row))

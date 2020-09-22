@@ -1,5 +1,5 @@
-from random import randrange, expovariate, random, lognormvariate
-from math import exp, hypot, tau, copysign
+from random import randrange, expovariate, random, lognormvariate, choice
+from math import exp, hypot, tau, copysign, log
 import colorsys
 
 from wasabi2d import clock, Group, keyboard
@@ -37,10 +37,31 @@ class Fish:
         self.fishing = fishing
         self.anim = None
         self.caught = False
-        color = colorsys.hsv_to_rgb(random(), .5, 1)
-        sprite = layer.add_sprite('fish', anchor_x=32, color=color)
+        hue = random()
+        kind = choice(['fish', 'fish_scaly'])
+        fin_pos = (28, -2)
+        anchor_x = 32
+        anchor_y = 32
+        self.bonus = {
+            'food': randrange(2, 5),
+            'magic': randrange(0, int(max(1, log(max(1, -group.y/5))/2))),
+            'cube': 0,
+        }
+        if abs(hue - 1/6) < random() / 16:
+            kind = 'fish_crown'
+            self.bonus['magic'] += randrange(5, 8)
+            hue = 1/6
+        elif random() < 1 / 32:
+            kind = 'fish_box'
+            fin_pos = 16, -12
+            anchor_x = 20
+            anchor_y = 48
+            self.bonus['magic'] += 1
+            self.bonus['cube'] += 1 + self.bonus['magic'] // 4
+        color = colorsys.hsv_to_rgb(hue, .7, .9)
+        sprite = layer.add_sprite(kind, anchor_x=anchor_x, anchor_y=anchor_y, color=color)
         self.mouth_sprite = layer.add_sprite('fish_mouth', color=color)
-        self.fin_sprite = layer.add_sprite('fin', color=color, pos=(28, -2))
+        self.fin_sprite = layer.add_sprite('fin', color=color, pos=fin_pos)
         fix_transforms(sprite)
         self.group = Group([
             sprite,
@@ -301,7 +322,7 @@ class Hook:
         clock.schedule(self.fishing.spawner.stop, 3, strong=True)
         clock.schedule(lambda: setattr(self, 'active', False), 0.5, strong=True)
 
-        self.fishing.on_finish(food=3, magic=1, cube=15)
+        self.fishing.on_finish(**self.hooked_fish.bonus)
 
     async def cool(self):
         await clock.coro.sleep(0.25)

@@ -8,6 +8,9 @@ def mksprite(x, y, w, h, name):
 mksprite(0, 0, 2, 1, 'fish')
 mksprite(2, 0, 0.5, 1, 'hook')
 mksprite(2.5, 0, .5, 1, 'hook_in')
+mksprite(3, 0, 2, 1, 'fish_scaly')
+mksprite(5, 0, 2, 1, 'fish_crown')
+mksprite(7, 0, 1, 1, 'fish_box')
 
 mksprite(10, 0, 2, 2, 'blur_circle')
 mksprite(12, 0, 1.5, 1, 'kbd_arrows')
