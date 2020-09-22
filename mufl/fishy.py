@@ -1,5 +1,5 @@
-from random import randrange, expovariate, random
-from math import exp, hypot, tau
+from random import randrange, expovariate, random, lognormvariate
+from math import exp, hypot, tau, copysign
 import colorsys
 
 from wasabi2d import clock, Group, keyboard
@@ -10,20 +10,21 @@ MAX_FISH_WIDTH = 16*4*2
 FISH_SIZE = 16*1.5
 
 class Fishing:
-    def __init__(self, scene, fish_layer, hook_layer, hud_layer):
+    def __init__(self, scene, fish_layer, hook_layer, hud_layer, on_finish):
         self.scene = scene
         self.hook = None
+        self.on_finish = on_finish
         self.spawner = FishSpawner(self, fish_layer)
         self.hook = Hook(
             self, hook_layer, self.spawner.group, pos=(scene.width//2, 10),
         )
 
-        #hud_layer.add_sprite('kbd_arrows', pos=(2, scene.height-74), anchor_x=0)
-        #l=hud_layer.add_label('Move!', font='satisfy_regular', pos=(106, scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
-        #l.scale = 1/2
-        #hud_layer.add_sprite('kbd_space', pos=(2, scene.height-20), anchor_x=0)
-        #l=hud_layer.add_label('Pull!', font='satisfy_regular', pos=(106, scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
-        #l.scale = 1/2
+        hud_layer.add_sprite('kbd_arrows', pos=(2, scene.height-74), anchor_x=0)
+        l=hud_layer.add_label('Move!', font='satisfy_regular', pos=(106, scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
+        l.scale = 1/2
+        hud_layer.add_sprite('kbd_space', pos=(2, scene.height-20), anchor_x=0)
+        l=hud_layer.add_label('Pull!', font='satisfy_regular', pos=(106, scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
+        l.scale = 1/2
 
 
 class Fish:
@@ -137,8 +138,10 @@ class FishSpawner:
                     speed=(sx, 0), on_finish=self.fishes.discard,
                 )
                 self.fishes.add(fish)
-            print(self.fishing.hook.sprite.y)
             await clock.coro.sleep(expovariate(self.height/100 + abs(self.fishing.hook.sprite.y/1000)))
+
+    def stop(self):
+        self.task.cancel()
 
 
 class Hook:
@@ -147,7 +150,7 @@ class Hook:
         self.scene = fishing.scene
         self.sprite = layer.add_sprite('hook', pos=pos)
         fix_transforms(self.sprite)
-        self.line = layer.add_line([(-9, -16), (-9, -self.scene.height)])
+        self.line = layer.add_line([(-9, -18), (-9, -self.scene.height)])
         self.group = group
         group.capture(self.sprite)
         group.capture(self.line)
@@ -170,23 +173,28 @@ class Hook:
         self.particle_group.add_color_stop(0.25, (1, 1, 1, 0.5))
         self.particle_group.add_color_stop(.5, (0.75, 0.9, 1, 0.5))
         self.particle_group.add_color_stop(1, (0.9, 1, 1, 0))
+        self.active = True
 
     async def coro(self):
         space = True
         while True:
             dt = await clock.coro.next_frame()
-            ws = self.sprite.pos[0] / self.scene.width
-            if keyboard.keyboard.right:
-                xs = 100
-            elif keyboard.keyboard.left:
-                xs = -100
+            ws = self.sprite.x / self.scene.width
+            if self.active:
+                if keyboard.keyboard.right:
+                    xs = 100
+                elif keyboard.keyboard.left:
+                    xs = -100
+                else:
+                    xs = 0
+                if keyboard.keyboard.up:
+                    ys = -100
+                elif keyboard.keyboard.down:
+                    ys = 200
+                else:
+                    ys = 50
             else:
-                xs = 0
-            if keyboard.keyboard.up:
-                ys = -100
-            elif keyboard.keyboard.down:
-                ys = 200
-            else:
+                xs = copysign(10, 1/2-ws)
                 ys = 50
             if self.hooked_fish:
                 ys -= self.pullout_speed
@@ -257,7 +265,7 @@ class Hook:
                             fish.mouth_sprite.angle = 0
                             self.caught_fish = fish
                             self.sprite.image = 'hook_in'
-                            self.caught_timer = 0.5 + expovariate(1/2)
+                            self.caught_timer = 0.2 + lognormvariate(0, 0.25) / 2
                             if fish.task:
                                 fish.task.cancel()
                             if fish.anim:
@@ -285,6 +293,11 @@ class Hook:
             want_h=self.scene.height // 2
         )
         self.pull_timer = 0
+
+        clock.schedule(self.fishing.spawner.stop, 3, strong=True)
+        clock.schedule(lambda: setattr(self, 'active', False), 0.5, strong=True)
+
+        self.fishing.on_finish()
 
     async def cool(self):
         await clock.coro.sleep(0.25)
