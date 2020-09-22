@@ -34,6 +34,7 @@ class VisualizedProperty:
 COLORS = {
     'food': (.9, .4, .1),
     'magic': (.1, .7, .9),
+    'cube': (.8, .9, .1),
 }
 
 class Info:
@@ -47,17 +48,17 @@ class Info:
         self.labels = {}
         self.sprites = {}
 
-        self.sprites['food'] = self.perm_layer.add_sprite('food', scale=1/2, pos=(8, 8), color=(*COLORS['food'], 0))
-        self.labels['food'] = self.perm_layer.add_label('1', font='kufam_bold', pos=(18, 14), color=(0.9, 1, 1, 0), fontsize=15)
+        for i, (name, color) in enumerate(COLORS.items()):
+            self.sprites[name] = self.perm_layer.add_sprite(name, scale=1/2, pos=(8, 8+16*i), color=(*color, 0))
+            self.labels[name] = self.perm_layer.add_label('0', font='kufam_bold', pos=(18, 14+16*i), color=(0.9, 1, 1, 0), fontsize=15)
 
-        self.sprites['magic'] = self.perm_layer.add_sprite('magic', scale=1/2, pos=(8, 8+16), color=(*COLORS['magic'], 0))
-        self.labels['magic'] = self.perm_layer.add_label('10', font='kufam_bold', pos=(18, 14+16), color=(0.9, 1, 1, 0), fontsize=15)
-
-        self.food = 1
+        self.food = 0
         self.magic = 0
+        self.cube = 0
 
     food = VisualizedProperty()
     magic = VisualizedProperty()
+    cube = VisualizedProperty()
 
     def give(self, sleep=0, **attrs):
         w = 32
@@ -70,10 +71,12 @@ class Info:
             async def go_one(i):
                 sprite = self.temp_layer.add_sprite(name, pos=(x + w + i * w, y), color=COLORS[name], scale=0)
                 await animate(sprite, scale=1, duration=0.25)
-                await clock.coro.sleep(total / 4 + sleep)
-                animate(sprite, duration=1, tween='accelerate', pos=self.sprites[name].pos, scale=self.sprites[name].scale)
+                await clock.coro.sleep(total / 8 + sleep)
+                anim = animate(sprite, duration=1, tween='accelerate', pos=self.sprites[name].pos, scale=self.sprites[name].scale)
                 await clock.coro.sleep(.6)
                 setattr(self, name, getattr(self, name) + 1)
+                await anim
+                sprite.delete()
             for i in range(amount):
                 await clock.coro.sleep(.1)
                 clock.coro.run(go_one(i))

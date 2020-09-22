@@ -301,7 +301,7 @@ class Hook:
         clock.schedule(self.fishing.spawner.stop, 3, strong=True)
         clock.schedule(lambda: setattr(self, 'active', False), 0.5, strong=True)
 
-        self.fishing.on_finish(food=3, magic=1)
+        self.fishing.on_finish(food=3, magic=1, cube=15)
 
     async def cool(self):
         await clock.coro.sleep(0.25)
