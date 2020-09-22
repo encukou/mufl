@@ -4,7 +4,7 @@ import colorsys
 
 from wasabi2d import clock, Group, keyboard
 
-from fixes import animate, fix_transforms
+from .fixes import animate, fix_transforms
 
 MAX_FISH_WIDTH = 16*4*2
 FISH_SIZE = 16*1.5

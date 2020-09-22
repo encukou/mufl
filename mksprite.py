@@ -3,7 +3,7 @@ from PIL import Image
 base = Image.open('pics.png')
 
 def mksprite(x, y, w, h, name):
-    base.crop((64*x, 64*y, 64*(x+w), 64*(y+h))).save(f'images/{name}.png')
+    base.crop((64*x, 64*y, 64*(x+w), 64*(y+h))).save(f'mufl/images/{name}.png')
 
 mksprite(0, 0, 2, 1, 'fish')
 mksprite(2, 0, 0.5, 1, 'hook')
