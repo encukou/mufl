@@ -10,20 +10,24 @@ MAX_FISH_WIDTH = 16*4*2
 FISH_SIZE = 16*1.5
 
 class Fishing:
-    def __init__(self, scene, fish_layer, hook_layer, hud_layer, on_finish):
-        self.scene = scene
+    def __init__(self, game, on_finish):
+        self.game = game
+        fish_layer = game.scene.layers[1]
+        hook_layer = game.scene.layers[2]
+        hud_layer = game.scene.layers[3]
+        self.scene = game.scene
         self.hook = None
         self.on_finish = on_finish
         self.spawner = FishSpawner(self, fish_layer)
         self.hook = Hook(
-            self, hook_layer, self.spawner.group, pos=(scene.width//2, 10),
+            self, hook_layer, self.spawner.group, pos=(game.scene.width//2, 10),
         )
 
-        hud_layer.add_sprite('kbd_arrows', pos=(2, scene.height-74), anchor_x=0)
-        l=hud_layer.add_label('Move!', font='satisfy_regular', pos=(106, scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
+        hud_layer.add_sprite('kbd_arrows', pos=(2, game.scene.height-74), anchor_x=0)
+        l=hud_layer.add_label('Move!', font='satisfy_regular', pos=(106, game.scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
         l.scale = 1/2
-        hud_layer.add_sprite('kbd_space', pos=(2, scene.height-20), anchor_x=0)
-        l=hud_layer.add_label('Pull!', font='satisfy_regular', pos=(106, scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
+        hud_layer.add_sprite('kbd_space', pos=(2, game.scene.height-20), anchor_x=0)
+        l=hud_layer.add_label('Pull!', font='satisfy_regular', pos=(106, game.scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
         l.scale = 1/2
 
 
@@ -297,7 +301,7 @@ class Hook:
         clock.schedule(self.fishing.spawner.stop, 3, strong=True)
         clock.schedule(lambda: setattr(self, 'active', False), 0.5, strong=True)
 
-        self.fishing.on_finish()
+        self.fishing.on_finish(food=3, magic=1)
 
     async def cool(self):
         await clock.coro.sleep(0.25)
