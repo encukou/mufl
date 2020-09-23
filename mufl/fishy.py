@@ -38,7 +38,7 @@ class Fish:
         self.anim = None
         self.caught = False
         hue = random()
-        kind = choice(['fish', 'fish_scaly'])
+        kind = 'fish'
         fin_pos = (28, -2)
         anchor_x = 32
         anchor_y = 32
@@ -58,6 +58,8 @@ class Fish:
             anchor_y = 48
             self.bonus['magic'] += 1
             self.bonus['cube'] += 1 + self.bonus['magic'] // 4
+        elif self.bonus['magic']:
+            kind = 'fish_scaly'
         color = colorsys.hsv_to_rgb(hue, .7, .9)
         sprite = layer.add_sprite(kind, anchor_x=anchor_x, anchor_y=anchor_y, color=color)
         self.mouth_sprite = layer.add_sprite('fish_mouth', color=color)
@@ -270,7 +272,9 @@ class Hook:
                 if not self.hooked_fish:
                     self.caught_timer -= dt
                     if self.caught_timer < 0:
-                        if randrange(5):
+                        if randrange(2*sum(fish.bonus.values())) < 4:
+                            self.catch_fish()
+                        else:
                             self.caught_fish = None
                             fish.caught = False
                             fish.cooldown = 1
@@ -280,8 +284,6 @@ class Hook:
                             animate(fish, speed=(xs * 2, ys), duration=4)
                             fish.reset_task()
                             self.sprite.image = 'hook'
-                        else:
-                            self.catch_fish()
             else:
                 for fish in self.fishing.spawner.fishes:
                     dist = hypot(*(self.sprite.pos - fish.group.pos)) / (FISH_SIZE * 4)

@@ -8,7 +8,7 @@ from .info import Info, InfoNode
 
 class Game:
     def __init__(self):
-        self.scene = Scene(title='Cast Away!', icon='fish')
+        self.scene = Scene(title='Cast Away!', icon='logo', width=800, height=600)
         self.scene.background = 0.9, 0.9, 1.0
 
         self.action_layers = chain.LayerRange(stop=9)

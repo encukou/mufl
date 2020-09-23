@@ -23,3 +23,5 @@ mksprite(1, 1, 0.5, 0.5, 'bubble')
 mksprite(1.5, 1, 0.5, 0.5, 'food')
 mksprite(2, 1, 0.5, 0.5, 'magic')
 mksprite(2.5, 1, 0.5, 0.5, 'cube')
+
+mksprite(15, 1, 1, 1, 'logo')
