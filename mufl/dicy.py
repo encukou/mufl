@@ -1,36 +1,88 @@
-from math import tau
+from math import tau, sqrt, sin, cos
 import pkgutil
 from dataclasses import dataclass
 from itertools import chain
+from random import uniform
 
 import moderngl
 from wasabi2d.allocators.packed import PackedBuffer
 from wasabi2d import clock
+import numpy
 import numpy as np
 from pyrr import Quaternion
 
 # Parts pilfered from wasabi2d/primitives/sprites.py
 
-QUAD = np.array([0, 1, 2, 0, 2, 3], dtype='u4')
-
 CUBE_VERTS = np.array([
+    [-1, -1,  1],
+    [-1,  1,  1],
+    [ 1,  1,  1],
+    [ 1, -1,  1],
+
+    [ 1, -1,  1],
+    [ 1,  1,  1],
+    [ 1,  1, -1],
+    [ 1, -1, -1],
+
     [-1, -1, -1],
+    [-1,  1, -1],
+    [-1,  1,  1],
+    [-1, -1,  1],
+
     [ 1, -1, -1],
     [ 1,  1, -1],
     [-1,  1, -1],
-], dtype='i4')
+    [-1, -1, -1],
+
+    [-1, -1, -1],
+    [-1, -1,  1],
+    [ 1, -1,  1],
+    [ 1, -1, -1],
+
+    [ 1,  1, -1],
+    [ 1,  1,  1],
+    [-1,  1,  1],
+    [-1,  1, -1],
+], dtype='i1')
 CUBE_INDEXES = np.array([
-    0, 1, 2, 0, 3, 2,
+     0, 1, 2, 0, 2, 3,
+     4, 5, 6, 4, 6, 7,
+     8, 9,10, 8,10,11,
+    12,13,14,12,14,15,
+    16,17,18,16,18,19,
+    20,21,22,20,22,23,
 ], dtype='u4')
 CUBE_UV = np.array([
+    [0, 1],
     [0, 0],
     [1, 0],
     [1, 1],
-    [0, 1],
+
+    [1, 1],
+    [1, 0],
+    [2, 0],
+    [2, 1],
+
+    [2, 1],
+    [2, 0],
+    [1, 0],
+    [1, 1],
+
+    [2, 1],
+    [2, 0],
+    [3, 0],
+    [3, 1],
+
+    [3, 0],
+    [3, 1],
+    [4, 1],
+    [4, 0],
+
+    [4, 0],
+    [4, 1],
+    [5, 1],
+    [5, 0],
 ], dtype='u4')
-CUBE_NORM = np.array([
-    *[[0, 0, -1]] * 4,
-])
 
 
 @dataclass
@@ -44,7 +96,7 @@ class TextureContext:
         self.prog['tex'].value = 0
         self.tex.use(0)
         self.ctx.front_face = 'cw'
-        self.ctx.cull_face = 'back'
+        self.ctx.cull_face = 'front'
         self.ctx.enable(moderngl.CULL_FACE)
 
     def __exit__(self, *_):
@@ -63,10 +115,20 @@ def load_program(mgr) -> moderngl.Program:
     )
     return prog
 
+def get_rand_speed():
+    angle = uniform(0, tau)
+    return np.array([cos(angle), sin(angle), 1]) * uniform(3, 6)
+
 class Die:
-    def __init__(self, layer):
+    def __init__(self, throwing, layer):
+        self.throwing = throwing
+        self.scene = throwing.game.scene
         self.rotation = Quaternion()
-        self.rotation_speed = Quaternion.from_x_rotation(tau/2) * Quaternion.from_y_rotation(3/4)
+        self.randomize_rotation()
+        self.pos = numpy.array([50., 50., 50.])
+        self.speed = get_rand_speed()
+        self.size = 32
+        self.r = sqrt(3) * self.size
 
         self.layer = layer
         self._dirty = True
@@ -78,13 +140,19 @@ class Die:
 
         self._set_img()
 
-        clock.each_tick(self.rotate)
+        clock.each_tick(self.advance)
+
+    def randomize_rotation(self):
+        self.rotation_speed = (
+            Quaternion.from_x_rotation(uniform(0, tau))
+            * Quaternion.from_y_rotation(uniform(0, tau))
+            * Quaternion.from_z_rotation(uniform(0, tau))
+        )
 
     def _update(self):
         self._array = self._get_array(self.texregion.tex)
 
         verts = self._array.get_verts(self._array_id)
-        verts['in_color'][:] = 1, 0, 1, 1
 
         tc = self.texregion.texcoords[1::2, :].copy()
         add = tc[1]
@@ -92,7 +160,6 @@ class Die:
         mul[0] //= 5
         verts['in_uv'][:] = CUBE_UV * mul + add
         verts['in_vert'][:] = CUBE_VERTS
-        verts['in_norm'][:] = CUBE_NORM
 
     def _get_array(self, tex):
         k = ('mufl', 'die', id(tex))
@@ -100,14 +167,12 @@ class Die:
         if not array:
             prog = load_program(self.layer.group.shadermgr)
             array = PackedBuffer(
-                moderngl.TRIANGLE_STRIP,
+                moderngl.TRIANGLES,
                 self.layer.ctx,
                 prog,
                 dtype=np.dtype([
-                    ('in_vert', '3f4'),
-                    ('in_color', '4f2'),
+                    ('in_vert', '3i1'),
                     ('in_uv', '2u2'),
-                    ('in_norm', '3f2'),
                 ]),
                 draw_context=TextureContext(tex, prog, self.layer.ctx),
             )
@@ -128,14 +193,36 @@ class Die:
         self._array = self._get_array(tex)
         self._array_id, _ = self._array.alloc(len(CUBE_VERTS), CUBE_INDEXES)
 
-    def rotate(self, dt):
+    def advance(self, dt):
+        self.pos += self.speed
+        r = self.r
+        if self.pos[0] < r:
+            self.speed[0] = abs(self.speed[0])
+            self.randomize_rotation()
+        if self.pos[1] < r:
+            self.speed[1] = abs(self.speed[1])
+            self.randomize_rotation()
+        if self.pos[0] > self.scene.width - r:
+            self.speed[0] = -abs(self.speed[0])
+            self.randomize_rotation()
+        if self.pos[1] > self.scene.height - r:
+            self.speed[1] = -abs(self.speed[1])
+            self.randomize_rotation()
+        if self.pos[2] < 0:
+            self.pos[2] = 0
+            self.speed[2] = abs(self.speed[2])
         try:
             self.rotation *= self.rotation_speed.power(dt)
         except AssertionError as e:
             print('AssertionError in quaternion power:', e)
             pass
-        self.prog['pos'] = 50, 50
+        self.prog['pos'] = tuple(self.pos)
         self.prog['rot'] = tuple(chain(*self.rotation.matrix44))
+        self.prog['size'] = self.size
+        self.speed *= 0.99 ** dt
+        self.speed[2] -= 1 * dt
+        print(self.pos, self.speed, dt)
+
 
 class DiceThrowing:
     def __init__(self, game, on_finish):
@@ -143,4 +230,9 @@ class DiceThrowing:
         self.on_finish = on_finish
 
         dice_layer = game.scene.layers[1]
-        Die(dice_layer)
+        self.dice = [
+            Die(self, dice_layer),
+            Die(self, dice_layer),
+            Die(self, dice_layer),
+        ]
+        Die(self, dice_layer)
