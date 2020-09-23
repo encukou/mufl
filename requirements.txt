@@ -1,4 +1,5 @@
 wasabi2d == 1.4.0
+pyrr == 0.10.3
 
 # For https://github.com/lordmauve/wasabi2d/issues/57:
 numpy == 1.17.5

@@ -104,9 +104,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="2.7973288"
-     inkscape:cx="147.93233"
-     inkscape:cy="131.98773"
+     inkscape:zoom="22.37863"
+     inkscape:cx="56.972448"
+     inkscape:cy="152.5791"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -815,5 +815,12 @@
        d="m 69.875593,39.422917 c 0,0 -0.02559,0.264583 0.768157,0.264583"
        id="path1068"
        sodipodi:nodetypes="cc" />
+    <ellipse
+       style="fill:#808080;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.264583;stroke-miterlimit:4;stroke-dasharray:none;paint-order:normal"
+       id="ellipse965"
+       cx="12.170834"
+       cy="41.804165"
+       rx="0.5291667"
+       ry="0.52916664" />
   </g>
 </svg>

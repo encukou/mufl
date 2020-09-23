@@ -2,10 +2,10 @@ from PIL import Image
 
 base = Image.open('pics.png')
 
-UNIT = 64
+UNIT = 128
 
 def mksprite(x, y, w, h, name):
-    base.crop((UNIT*x, UNIT*y, UNIT*(x+w), UNIT*(y+h))).save(f'mufl/images/{name}.png')
+    base.crop((UNIT*x, UNIT*y, UNIT*(x+w), UNIT*(y+h))).resize((int(UNIT*w/2), int(UNIT*h/2))).save(f'mufl/images/{name}.png')
 
 mksprite(0, 0, 2, 1, 'fish')
 mksprite(2, 0, 0.5, 1, 'hook')
@@ -36,7 +36,7 @@ mksprite(4, 2, 1, 1, 'die_bottom')
 
 
 def mkdie():
-    margin = 16
+    margin = 16*2
     side = UNIT - margin * 2
     result = Image.new('RGBA', (side * 5, side))
     for i in range(5):

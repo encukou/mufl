@@ -3,8 +3,10 @@
 out vec4 f_color;
 in vec2 uv;
 in vec4 color;
+in float norm_z;
 uniform sampler2D tex;
 
 void main() {
-    f_color = color * vec4(1.0, 1.0, 1.0, 1.0) * 0.5 + texture(tex, uv) * 0.5;
+    if (norm_z > 0) discard;
+    f_color = color * texture(tex, uv);
 }
