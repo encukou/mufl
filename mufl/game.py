@@ -3,6 +3,7 @@ from math import hypot
 from wasabi2d import chain, animate, Scene, clock
 
 from .fishy import Fishing
+from .dicy import DiceThrowing
 from .info import Info, InfoNode
 
 
@@ -20,17 +21,22 @@ class Game:
 
         self.scene.chain = [
             self.action_layers,
-            self.info_node,
+            #self.info_node,
         ]
 
         self.scene.layers[11].set_effect('dropshadow', radius=3, offset=(0, 0), opacity=3)
 
     def go_fish(self):
         self.activity = Fishing(
-            self, on_finish=self.finish_fish,
+            self, on_finish=self.finish_activity,
         )
 
-    def finish_fish(self, **bonus):
+    def go_dice(self):
+        self.activity = DiceThrowing(
+            self, on_finish=self.finish_activity,
+        )
+
+    def finish_activity(self, **bonus):
         circ = self.scene.layers[10].add_sprite(
             'blur_circle',
             scale=hypot(self.scene.width, self.scene.height)//2 / 50,
