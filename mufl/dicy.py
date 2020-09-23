@@ -3,6 +3,7 @@ import pkgutil
 from dataclasses import dataclass
 from itertools import chain
 from random import uniform
+from contextlib import contextmanager
 
 import moderngl
 from wasabi2d.allocators.packed import PackedBuffer
@@ -86,21 +87,25 @@ CUBE_UV = np.array([
 
 
 @dataclass
-class TextureContext:
+class DrawContext:
     tex: moderngl.Texture
     prog: moderngl.Program
-    ctx: moderngl.Context
+    die: 'Die'
 
     def __enter__(self):
         """Bind the given texture to the given program during the context."""
         self.prog['tex'].value = 0
         self.tex.use(0)
-        self.ctx.front_face = 'cw'
-        self.ctx.cull_face = 'front'
-        self.ctx.enable(moderngl.CULL_FACE)
+        self.die.layer.ctx.front_face = 'cw'
+        self.die.layer.ctx.cull_face = 'front'
+        self.die.layer.ctx.enable(moderngl.CULL_FACE)
+        self.die.prog['pos'] = tuple(self.die.pos)
+        self.die.prog['rot'] = tuple(chain(*self.die.rotation.matrix44))
+        self.die.prog['size'] = self.die.size * (1+self.die.pos[2]/600)
+        print(self.die.pos)
 
     def __exit__(self, *_):
-        self.ctx.disable(moderngl.CULL_FACE)
+        self.die.layer.ctx.disable(moderngl.CULL_FACE)
 
 def load_program(mgr) -> moderngl.Program:
     names = ('die', 'die')
@@ -127,7 +132,7 @@ class Die:
         self.randomize_rotation()
         self.pos = numpy.array([50., 50., 50.])
         self.speed = get_rand_speed()
-        self.size = 32
+        self.size = 24
         self.r = sqrt(3) * self.size
 
         self.layer = layer
@@ -155,14 +160,14 @@ class Die:
         verts = self._array.get_verts(self._array_id)
 
         tc = self.texregion.texcoords[1::2, :].copy()
-        add = tc[1]
-        mul = (tc[0] - tc[1])
+        add = tc[1] + 1
+        mul = (tc[0] - tc[1]) - 2
         mul[0] //= 5
         verts['in_uv'][:] = CUBE_UV * mul + add
         verts['in_vert'][:] = CUBE_VERTS
 
     def _get_array(self, tex):
-        k = ('mufl', 'die', id(tex))
+        k = ('mufl', 'die', id(tex), id(self))
         array = self.layer.arrays.get(k)
         if not array:
             prog = load_program(self.layer.group.shadermgr)
@@ -174,7 +179,7 @@ class Die:
                     ('in_vert', '3i1'),
                     ('in_uv', '2u2'),
                 ]),
-                draw_context=TextureContext(tex, prog, self.layer.ctx),
+                draw_context=DrawContext(tex, prog, self),
             )
             self.layer.arrays[k] = array
         return array
@@ -216,12 +221,8 @@ class Die:
         except AssertionError as e:
             print('AssertionError in quaternion power:', e)
             pass
-        self.prog['pos'] = tuple(self.pos)
-        self.prog['rot'] = tuple(chain(*self.rotation.matrix44))
-        self.prog['size'] = self.size
-        self.speed *= 0.99 ** dt
-        self.speed[2] -= 1 * dt
-        print(self.pos, self.speed, dt)
+        self.speed *= 0.9 ** dt
+        self.speed[2] -= 5 * dt
 
 
 class DiceThrowing:
@@ -230,9 +231,6 @@ class DiceThrowing:
         self.on_finish = on_finish
 
         dice_layer = game.scene.layers[1]
-        self.dice = [
-            Die(self, dice_layer),
-            Die(self, dice_layer),
-            Die(self, dice_layer),
-        ]
+        Die(self, dice_layer)
+        Die(self, dice_layer)
         Die(self, dice_layer)

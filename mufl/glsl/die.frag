@@ -6,5 +6,5 @@ in float norm_z;
 uniform sampler2D tex;
 
 void main() {
-    f_color = texture(tex, uv);
+    f_color = vec4(texture(tex, uv).rgb, 1.0);
 }
