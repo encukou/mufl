@@ -1,4 +1,4 @@
-from math import tau, sqrt, sin, cos
+from math import tau, sqrt, sin, cos, atan2, hypot
 import pkgutil
 from dataclasses import dataclass
 from itertools import chain
@@ -10,9 +10,11 @@ from wasabi2d.allocators.packed import PackedBuffer
 from wasabi2d import clock
 import numpy
 import numpy as np
-from pyrr import Quaternion
+from pyrr import Quaternion, Vector3
 
 # Parts pilfered from wasabi2d/primitives/sprites.py
+
+DAMPING = 0.9
 
 CUBE_VERTS = np.array([
     [-1, -1,  1],
@@ -97,12 +99,11 @@ class DrawContext:
         self.prog['tex'].value = 0
         self.tex.use(0)
         self.die.layer.ctx.front_face = 'cw'
-        self.die.layer.ctx.cull_face = 'front'
+        self.die.layer.ctx.cull_face = 'back'
         self.die.layer.ctx.enable(moderngl.CULL_FACE)
         self.die.prog['pos'] = tuple(self.die.pos)
         self.die.prog['rot'] = tuple(chain(*self.die.rotation.matrix44))
         self.die.prog['size'] = self.die.size * (1+self.die.pos[2]/600)
-        print(self.die.pos)
 
     def __exit__(self, *_):
         self.die.layer.ctx.disable(moderngl.CULL_FACE)
@@ -122,18 +123,24 @@ def load_program(mgr) -> moderngl.Program:
 
 def get_rand_speed():
     angle = uniform(0, tau)
-    return np.array([cos(angle), sin(angle), 1]) * uniform(3, 6)
+    return np.array([cos(angle), sin(angle), 2]) * uniform(3, 6)
 
 class Die:
-    def __init__(self, throwing, layer):
+    def __init__(self, throwing, layer, i):
         self.throwing = throwing
         self.scene = throwing.game.scene
         self.rotation = Quaternion()
+        self.rotation = (
+            Quaternion.from_x_rotation(uniform(0, tau))
+            * Quaternion.from_x_rotation(uniform(0, tau))
+            * Quaternion.from_x_rotation(uniform(0, tau))
+        )
         self.randomize_rotation()
-        self.pos = numpy.array([50., 50., 50.])
+        self.pos = numpy.array([250.+150*i, 250., 50.])
         self.speed = get_rand_speed()
         self.size = 24
         self.r = sqrt(3) * self.size
+        self.gravity = 10
 
         self.layer = layer
         self._dirty = True
@@ -203,18 +210,19 @@ class Die:
         r = self.r
         if self.pos[0] < r:
             self.speed[0] = abs(self.speed[0])
-            self.randomize_rotation()
+            #self.randomize_rotation()
         if self.pos[1] < r:
             self.speed[1] = abs(self.speed[1])
-            self.randomize_rotation()
+            #self.randomize_rotation()
         if self.pos[0] > self.scene.width - r:
             self.speed[0] = -abs(self.speed[0])
-            self.randomize_rotation()
+            #self.randomize_rotation()
         if self.pos[1] > self.scene.height - r:
             self.speed[1] = -abs(self.speed[1])
-            self.randomize_rotation()
+            #self.randomize_rotation()
         if self.pos[2] < 0:
-            self.pos[2] = 0
+            self.bounce()
+            #self.pos[2] = 0
             self.speed[2] = abs(self.speed[2])
         try:
             self.rotation *= self.rotation_speed.power(dt)
@@ -222,8 +230,24 @@ class Die:
             print('AssertionError in quaternion power:', e)
             pass
         self.speed *= 0.9 ** dt
-        self.speed[2] -= 5 * dt
+        self.speed[2] -= self.gravity * dt
 
+    def bounce(self):
+        rot = self.rotation
+        rot_mat = rot.matrix33
+        low_pt = 0, 0, 0
+        for xp in -1, 1:
+            for yp in -1, 1:
+                for zp in -1, 1:
+                    point = rot_mat * Vector3([xp, yp, zp])
+                    if point[2] < low_pt[2]:
+                        low_pt = point
+        if low_pt[2] >= 0:
+            return
+        rot_imp = Vector3((0, 0, -1)).cross(Vector3((*low_pt.xy, 0.0))) * (.1 + abs(self.speed[2]) / 10)
+        riq = Quaternion.from_axis(-rot_imp)
+        self.rotation_speed = Quaternion().lerp(riq * self.rotation_speed, 0.9)
+        self.speed *= 0.7
 
 class DiceThrowing:
     def __init__(self, game, on_finish):
@@ -231,6 +255,5 @@ class DiceThrowing:
         self.on_finish = on_finish
 
         dice_layer = game.scene.layers[1]
-        Die(self, dice_layer)
-        Die(self, dice_layer)
-        Die(self, dice_layer)
+        for i in range(3):
+            Die(self, dice_layer, i)
