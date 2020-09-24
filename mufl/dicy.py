@@ -4,10 +4,11 @@ from dataclasses import dataclass
 from itertools import chain
 from random import uniform
 from contextlib import contextmanager
+from collections import Counter
 
 import moderngl
 from wasabi2d.allocators.packed import PackedBuffer
-from wasabi2d import clock, keyboard
+from wasabi2d import clock, keyboard, animate
 import numpy
 import numpy as np
 from numpy.linalg import norm as linalg_norm
@@ -101,8 +102,8 @@ FACE_NAMES = (
 )
 BONUSES = (
     {'magic': 2, 'food': 1},
-    {'magic': 2},
     {'magic': 1},
+    {},
     {'food': 1},
     {'food': 2},
 )
@@ -157,7 +158,7 @@ class Die:
             * Quaternion.from_x_rotation(uniform(0, tau))
         )
         self.randomize_rotation()
-        self.pos = numpy.array([250.+150*(i//4), 250.+50*(i%4), 150.])
+        self.pos = numpy.array([250.+150*(i//3), 250.+150*(i%3), 150.])
         self.speed = get_rand_speed()
         self.size = 24
         self.r = sqrt(3) * self.size
@@ -187,9 +188,9 @@ class Die:
 
     def randomize_rotation(self):
         self.rotation_speed = (
-            Quaternion.from_x_rotation(uniform(0, tau*5))
-            * Quaternion.from_y_rotation(uniform(0, tau*5))
-            * Quaternion.from_z_rotation(uniform(0, tau*5))
+            Quaternion.from_x_rotation(uniform(0, tau*15))
+            * Quaternion.from_y_rotation(uniform(0, tau*15))
+            * Quaternion.from_z_rotation(uniform(0, tau*15))
         )
 
     def _update(self):
@@ -326,7 +327,9 @@ class DiceThrowing:
 
         dice_layer = game.scene.layers[1]
         dice_layer.set_effect('dropshadow', radius=3, opacity=2, offset=(0, 0))
-        self.dice = [Die(self, dice_layer, i) for i in range(10)]
+        self.dice = [Die(self, dice_layer, i) for i in range(4)]
+
+        self.line_layer = game.scene.layers[2]
 
         clock.each_tick(self.collide)
 
@@ -343,5 +346,30 @@ class DiceThrowing:
                 bonuses = BONUSES[die.face]
                 print(bonuses)
                 self.game.info.give(**bonuses, pos=die.pos[:2], sleep=1 + 0.5 * len(self.dice), outline=True, hoffset=0.5)
+
+            def give_bonus_pairs(dt=None):
+                to_check = set()
+                for die in self.dice:
+                    for other in set(to_check):
+                        if die.face == other.face:
+                            line = self.line_layer.add_line(
+                                (die.pos[:2], other.pos[:2]),
+                                color=(np.array(die.color) + other.color) / 2,
+                                stroke_width=0,
+                            )
+                            to_check.discard(other)
+                            animate(line, stroke_width=5)
+                            bonuses = Counter(BONUSES[die.face]) + Counter(BONUSES[other.face]) + Counter(magic=1)
+                            midpos = (die.pos[:2] + other.pos[:2]) / 2
+                            self.game.info.give(**bonuses, pos=midpos, sleep=1.5, outline=True, hoffset=0.5)
+                            animate(die, size=die.size*1.1)
+                            animate(other, size=other.size*1.1)
+                            break
+                    else:
+                        to_check.add(die)
+                for left_die in set(to_check):
+                    animate(left_die, size=left_die.size*0.9)
+                self.on_finish()
+
             clock.unschedule(self.collide)
-            self.on_finish()
+            clock.schedule(give_bonus_pairs, 0.5 * len(self.dice), strong=True)
