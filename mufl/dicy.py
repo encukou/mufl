@@ -7,14 +7,17 @@ from contextlib import contextmanager
 
 import moderngl
 from wasabi2d.allocators.packed import PackedBuffer
-from wasabi2d import clock
+from wasabi2d import clock, keyboard
 import numpy
 import numpy as np
 from pyrr import Quaternion, Vector3
 
 # Parts pilfered from wasabi2d/primitives/sprites.py
 
-DAMPING = 0.9
+DAMPING = 0.8
+DAMPING_BOUNCE = 0.7
+
+UP = Vector3((0, 0, 1))
 
 CUBE_VERTS = np.array([
     [-1, -1,  1],
@@ -123,7 +126,7 @@ def load_program(mgr) -> moderngl.Program:
 
 def get_rand_speed():
     angle = uniform(0, tau)
-    return np.array([cos(angle), sin(angle), 2]) * uniform(3, 6)
+    return np.array([cos(angle), sin(angle), 1]) * uniform(6, 12)
 
 class Die:
     def __init__(self, throwing, layer, i):
@@ -140,7 +143,9 @@ class Die:
         self.speed = get_rand_speed()
         self.size = 24
         self.r = sqrt(3) * self.size
-        self.gravity = 10
+        self.gravity = 20
+        self.face = None
+        self.locked = False
 
         self.layer = layer
         self._dirty = True
@@ -153,6 +158,11 @@ class Die:
         self._set_img()
 
         clock.each_tick(self.advance)
+
+        #self.speed[:] = 0
+        #self.gravity=0
+        #self.rotation_speed = Quaternion()
+        #self.rotation = Quaternion()
 
     def randomize_rotation(self):
         self.rotation_speed = (
@@ -206,36 +216,48 @@ class Die:
         self._array_id, _ = self._array.alloc(len(CUBE_VERTS), CUBE_INDEXES)
 
     def advance(self, dt):
+        if self.locked:
+            return
+        if abs(sum(self.speed)) < 1 and self.rotation_speed.angle < 0.3:
+            a = self.rotation.matrix33.inverse * UP
+            aa = numpy.concatenate((a, -a))
+            face_arg = aa.argmax()
+            self.face = (1, 3, 2, 1, 4, 0)[face_arg]
+            if aa[face_arg] > 0.93:
+                self.locked = True
+                self.pos[2] = self.r
+                return
+        if keyboard.keyboard.left:
+            self.rotation *= Quaternion.from_y_rotation(-dt)
+        if keyboard.keyboard.right:
+            self.rotation *= Quaternion.from_y_rotation(dt)
+        if keyboard.keyboard.up:
+            self.rotation *= Quaternion.from_x_rotation(dt)
+        if keyboard.keyboard.down:
+            self.rotation *= Quaternion.from_x_rotation(-dt)
         self.pos += self.speed
         r = self.r
-        self._try_bounce(self.pos[0], (1, 0, 0))
-        self._try_bounce(self.scene.width - self.pos[0], (-1, 0, 0))
-        self._try_bounce(self.pos[1], (0, 1, 0))
-        self._try_bounce(self.scene.height - self.pos[1], (0, -1, 0))
-        self._try_bounce(self.pos[2], (0, 0, 1))
+        self.bounce(self.pos[0], (1, 0, 0))
+        self.bounce(self.scene.width - self.pos[0], (-1, 0, 0))
+        self.bounce(self.pos[1], (0, 1, 0))
+        self.bounce(self.scene.height - self.pos[1], (0, -1, 0))
+        self.bounce(self.pos[2], (0, 0, 1))
         try:
             self.rotation *= self.rotation_speed.power(dt)
         except AssertionError as e:
             print('AssertionError in quaternion power:', e)
             pass
-        self.speed *= 0.9 ** dt
+        self.speed *= DAMPING ** dt
         self.speed[2] -= self.gravity * dt
 
-    def _try_bounce(self, dist, norm):
+    def bounce(self, dist, norm):
         if dist > self.r:
             return
         norm = numpy.array(norm)
-        if self.bounce(dist, norm):
-            for i in range(3):
-                self.speed = self.speed - 2 * self.speed.dot(norm) * norm
-                if norm.dot(self.speed):
-                    break
-            self.pos += (self.r - dist) * norm
 
-    def bounce(self, dist, norm=(0, 0, 1)):
         rot = self.rotation
         rot_mat = rot.matrix33
-        low_pt = 0, 0, 0
+        low_pt = 10, 10, 10
         for xp in -1, 1:
             for yp in -1, 1:
                 for zp in -1, 1:
@@ -244,13 +266,20 @@ class Die:
                         low_pt = point
         if low_pt[2] >= dist:
             return False
+        self.locked = False
         rot_imp = Vector3(norm).cross(Vector3((*low_pt.xy, 0.0))) * (.5 + hypot(*self.speed) / 10)
         riq = Quaternion.from_axis(rot_imp)
         ump = -Vector3(self.speed).cross(norm)
         umpq = Quaternion.from_axis(ump)
         self.rotation_speed = Quaternion().lerp(umpq * riq * self.rotation_speed, 0.7)
-        self.speed *= 0.9
-        return True
+        self.speed *= DAMPING_BOUNCE
+
+        # Reflect speed
+        for i in range(3):
+            self.speed = self.speed - 2 * self.speed.dot(norm) * norm
+            if norm.dot(self.speed):
+                break
+        self.pos += (self.r - dist) * norm
 
 class DiceThrowing:
     def __init__(self, game, on_finish):
@@ -258,5 +287,9 @@ class DiceThrowing:
         self.on_finish = on_finish
 
         dice_layer = game.scene.layers[1]
-        for i in range(3):
-            Die(self, dice_layer, i)
+        self.dice = [Die(self, dice_layer, i) for i in range(3)]
+
+        clock.each_tick(self.collide)
+
+    def collide(self, dt):
+        print([die.face for die in self.dice])
