@@ -5,12 +5,16 @@ from .game import Game
 game = Game()
 #game.go_fish()
 
-#game.info.give(food=3, magic=3, cube=3)
+game.info.food = game.info.magic = game.info.cube = 6
+game.info.magic = 3
 game.go_dice()
 
 @event
 def on_key_down(key, mod):
-    if key == keys.ESCAPE:
-        exit()
+    if game.on_key_down(key):
+        return
+    else:
+        if key == keys.ESCAPE:
+            exit()
 
 run()

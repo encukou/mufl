@@ -1,6 +1,6 @@
 from math import hypot
 
-from wasabi2d import chain, animate, Scene, clock
+from wasabi2d import chain, animate, Scene, clock, event
 
 from .fishy import Fishing
 from .dicy import DiceThrowing
@@ -36,13 +36,17 @@ class Game:
             self, on_finish=self.finish_activity,
         )
 
-    def finish_activity(self, **bonus):
+    def finish_activity(self, speedup=1, **bonus):
         circ = self.scene.layers[10].add_sprite(
             'blur_circle',
             scale=hypot(self.scene.width, self.scene.height)//2 / 50,
             pos=(self.scene.width//2, self.scene.height*0.55),
         )
-        animate(circ, scale=getattr(self.activity, 'end_fadeout_scale', 100/64), duration=5, tween='accelerate')
+        if speedup == 1:
+            tween = 'accelerate'
+        else:
+            tween = 'linear'
+        animate(circ, scale=getattr(self.activity, 'end_fadeout_scale', 100/64), duration=5/speedup, tween=tween)
         self.scene.chain = [
             chain.Fill(color=(.1, .1, .1, 1)),
             chain.Mask(
@@ -52,3 +56,11 @@ class Game:
             self.info_node,
         ]
         clock.schedule(lambda: self.info.give(sleep=1, **bonus), 4, strong=True)
+
+    def on_key_down(self, key):
+        try:
+            on_key_down = self.activity.on_key_down
+        except AttributeError:
+            pass
+        else:
+            return on_key_down(key)

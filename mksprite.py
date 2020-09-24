@@ -18,6 +18,7 @@ mksprite(10, 0, 2, 2, 'blur_circle')
 mksprite(12, 0, 1.5, 1, 'kbd_arrows')
 mksprite(13.5, 0, 1.5, 0.5, 'kbd_space')
 mksprite(15, 0, 1, 1, 'sea')
+mksprite(14.5, 0.5, 0.5, 0.5, 'kbd_empty')
 
 mksprite(0, 1, 0.5, 0.5, 'fish_mouth')
 mksprite(0.5, 1, 0.5, 0.5, 'fin')
@@ -25,6 +26,7 @@ mksprite(1, 1, 0.5, 0.5, 'bubble')
 mksprite(1.5, 1, 0.5, 0.5, 'food')
 mksprite(2, 1, 0.5, 0.5, 'magic')
 mksprite(2.5, 1, 0.5, 0.5, 'cube')
+mksprite(3, 1, 0.5, 0.5, 'nada')
 
 mksprite(15, 1, 1, 1, 'logo')
 
@@ -33,6 +35,9 @@ mksprite(1, 2, 1, 1, 'die_side')
 mksprite(2, 2, 1, 1, 'die_back')
 mksprite(3, 2, 1, 1, 'die_top')
 mksprite(4, 2, 1, 1, 'die_bottom')
+mksprite(5, 2, 1, 1, 'die_any')
+mksprite(5, 2, 2.25, 1, 'die_equal')
+mksprite(7.5, 2, 0.5, 0.5, 'arrow')
 
 
 def mkdie():

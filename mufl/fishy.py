@@ -24,10 +24,10 @@ class Fishing:
         )
 
         hud_layer.add_sprite('kbd_arrows', pos=(2, game.scene.height-74), anchor_x=0)
-        l=hud_layer.add_label('Move!', font='satisfy_regular', pos=(106, game.scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
+        l=hud_layer.add_label('Move!', font='kufam_medium', pos=(106, game.scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
         l.scale = 1/2
         hud_layer.add_sprite('kbd_space', pos=(2, game.scene.height-20), anchor_x=0)
-        l=hud_layer.add_label('Pull!', font='satisfy_regular', pos=(106, game.scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
+        l=hud_layer.add_label('Pull!', font='kufam_medium', pos=(106, game.scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
         l.scale = 1/2
 
 
