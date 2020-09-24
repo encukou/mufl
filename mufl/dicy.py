@@ -15,6 +15,7 @@ from numpy.linalg import norm as linalg_norm
 from pyrr import Quaternion, Vector3
 
 from .info import COLORS as BONUS_COLORS
+from .common import add_key_icon, add_space_instruction, KEY_NUMBERS
 
 # Parts pilfered from wasabi2d/primitives/sprites.py
 
@@ -107,8 +108,8 @@ BONUSES = (
     {'magic': 2, 'food': 1},
     {'magic': 1},
     {},
-    {'food': 2},
     {'food': 1},
+    {'food': 2},
 )
 
 
@@ -404,18 +405,8 @@ class DiceThrowing:
             del self.game.scene.layers[3]
             del self.game.scene.layers[4]
             self.game.info.magic -= sum(self.selection)
-        if key in (keys.K_1, keys.KP1, keys.F1):
-            self.toggle_die(0)
-        elif key in (keys.K_2, keys.KP1, keys.F2):
-            self.toggle_die(1)
-        elif key in (keys.K_3, keys.KP1, keys.F3):
-            self.toggle_die(2)
-        elif key in (keys.K_4, keys.KP1, keys.F4):
-            self.toggle_die(3)
-        elif key in (keys.K_5, keys.KP1, keys.F5):
-            self.toggle_die(4)
-        elif key in (keys.K_6, keys.KP1, keys.F6):
-            self.toggle_die(5)
+        if (num := KEY_NUMBERS.get(key)) is not None:
+            self.toggle_die(num - 1)
 
     def toggle_die(self, number, time=1, recurse=True):
         try:
@@ -483,8 +474,7 @@ class DiceThrowing:
             self.fish_sprites.append(fish_sprite)
             self.selection.append(True)
             if selecting:
-                sel_layer.add_sprite('kbd_empty', pos=(xpos - 64-4, ypos))
-                self.sel2_layer.add_label(str(i+1), font='kufam_medium', pos=(xpos - 64, ypos+3), color=(0.1, 0.3, 0.8), fontsize=15, align='center')
+                add_key_icon(sel_layer, self.sel2_layer, xpos - 64-4, ypos, str(i+1))
             ypos += ysep
 
         xpos = w*5//6
@@ -516,9 +506,7 @@ class DiceThrowing:
             y -= 16
         sel_layer.add_label('Bonus for matching pairs!', font='kufam_medium', pos=(xpos, y), align='center', color=color, fontsize=15)
 
-        sel_layer.add_sprite('kbd_space', pos=(2, h-20), anchor_x=0)
-        l=sel_layer.add_label('Roll  for', font='kufam_medium', pos=(106, h-10), color=(0.1, 0.3, 0.8), fontsize=50)
-        l.scale = 1/2
+        add_space_instruction(sel_layer, 'Roll for')
 
         self.cost_sprites = []
         for i in range(self.game.info.cube):

@@ -27,6 +27,7 @@ mksprite(1.5, 1, 0.5, 0.5, 'food')
 mksprite(2, 1, 0.5, 0.5, 'magic')
 mksprite(2.5, 1, 0.5, 0.5, 'cube')
 mksprite(3, 1, 0.5, 0.5, 'nada')
+mksprite(3.5, 1, 0.5, 0.5, 'thing')
 
 mksprite(15, 1, 1, 1, 'logo')
 
@@ -38,6 +39,9 @@ mksprite(4, 2, 1, 1, 'die_bottom')
 mksprite(5, 2, 1, 1, 'die_any')
 mksprite(5, 2, 2.25, 1, 'die_equal')
 mksprite(7.5, 2, 0.5, 0.5, 'arrow')
+
+mksprite(12, 2, 4, 1.5, 'action_bg')
+mksprite(12, 3.5, 4, 1.5, 'selected_bg')
 
 
 def mkdie():

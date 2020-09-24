@@ -5,6 +5,7 @@ import colorsys
 from wasabi2d import clock, Group, keyboard
 
 from .fixes import animate, fix_transforms
+from .common import add_key_icon, add_space_instruction
 
 MAX_FISH_WIDTH = 16*4*2
 FISH_SIZE = 16*1.5
@@ -26,9 +27,7 @@ class Fishing:
         hud_layer.add_sprite('kbd_arrows', pos=(2, game.scene.height-74), anchor_x=0)
         l=hud_layer.add_label('Move!', font='kufam_medium', pos=(106, game.scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
         l.scale = 1/2
-        hud_layer.add_sprite('kbd_space', pos=(2, game.scene.height-20), anchor_x=0)
-        l=hud_layer.add_label('Pull!', font='kufam_medium', pos=(106, game.scene.height-10), color=(0.1, 0.3, 0.8), fontsize=50)
-        l.scale = 1/2
+        add_space_instruction(hud_layer, 'Pull!')
 
 
 class Fish:

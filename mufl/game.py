@@ -5,6 +5,7 @@ from wasabi2d import chain, animate, Scene, clock, event
 from .fishy import Fishing
 from .dicy import DiceThrowing
 from .info import Info, InfoNode
+from .island import Island
 
 
 class Game:
@@ -12,9 +13,10 @@ class Game:
         self.scene = Scene(title='Cast Away!', icon='logo', width=800, height=600)
         self.scene.background = 0.9, 0.9, 1.0
 
-        self.action_layers = chain.LayerRange(stop=9)
+        self.action_layers = chain.LayerRange(stop=5)
         self.fade_layers = chain.Layers([10])
         self.info_layers = chain.Layers([11, 12])
+        self.island_layers = chain.LayerRange(start=6, stop=9)
         self.info_node = InfoNode(self.info_layers)
 
         self.info = Info(self.scene, self.scene.layers[11], self.scene.layers[12])
@@ -26,6 +28,8 @@ class Game:
 
         self.scene.layers[11].set_effect('dropshadow', radius=3, offset=(0, 0), opacity=3)
 
+        self.island = Island(self)
+
     def go_fish(self):
         self.activity = Fishing(
             self, on_finish=self.finish_activity,
@@ -35,6 +39,13 @@ class Game:
         self.activity = DiceThrowing(
             self, on_finish=self.finish_activity,
         )
+
+    def return_to_island(self):
+        self.activity = self.island
+        self.scene.chain = [
+            self.island_layers,
+            self.info_node,
+        ]
 
     def finish_activity(self, speedup=1, **bonus):
         circ = self.scene.layers[10].add_sprite(
@@ -64,3 +75,11 @@ class Game:
             pass
         else:
             return on_key_down(key)
+
+    def on_key_up(self, key):
+        try:
+            on_key_up = self.activity.on_key_up
+        except AttributeError:
+            pass
+        else:
+            return on_key_up(key)
