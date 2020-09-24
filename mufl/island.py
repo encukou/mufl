@@ -27,7 +27,7 @@ def load_actions():
     for txt in text.split(PERFORATION):
         txt = txt.strip()
         lines = txt.splitlines()
-        cost = [int(s[1:]) if s.startswith('x') else s for s in lines[1].split()]
+        cost = lines[1].split()
         assert not lines[2], lines[2]
         actions.append(Action(
             caption=lines[0],
@@ -47,6 +47,7 @@ class Island:
         self.held_keys = []
 
         self.bg_sprites = []
+        self.caption_labels = []
 
         ys = 8
         ysep = 110
@@ -54,15 +55,19 @@ class Island:
         for i, action in enumerate(self.actions):
             s = self.bg_layer.add_sprite('action_bg', pos=(64, ys+16+i*ysep), anchor_x=0, anchor_y=0)
             self.bg_sprites.append(s)
-            self.main_layer.add_label(action.caption, font='kufam_bold', pos=(xpos, ys+56+i*ysep), color=(1, 1, 1), align='center', fontsize=22)
+            lbl = self.main_layer.add_label(action.caption, font='kufam_bold', pos=(xpos, ys+56+i*ysep), color=(1, 1, 1), align='center', fontsize=22)
+            self.caption_labels.append(lbl)
             add_key_icon(self.main_layer, self.top_layer, xpos-128, ys+56+i*ysep-8+2, str(i+1))
-            for j, item in enumerate(action.cost):
-                x = xpos + (j - (len(action.cost)-1)/2) * 32
+            cost = action.cost
+            if not cost:
+                cost = ['free']
+            for j, item in enumerate(cost):
+                x = xpos + (j - (len(cost)-1)/2) * 32 - 4
                 y = ys+56+i*ysep+16+8
-                if isinstance(item, int):
-                    self.main_layer.add_label(f'×{item}', font='kufam_medium', pos=(x, y+8), color=(1, 1, 1), align='center', fontsize=15)
-                else:
+                if item in BONUS_COLORS:
                     self.main_layer.add_sprite(item, pos=(x, y), color=BONUS_COLORS[item])
+                else:
+                    self.main_layer.add_label(f'{item}', font='kufam_medium', pos=(x, y+8), color=(1, 1, 1), align='center', fontsize=15)
 
             add_space_instruction(self.bg_layer, 'Press Space to Start')
 
@@ -73,52 +78,84 @@ class Island:
             lbl = self.main_layer.add_label('', font='kufam_medium', pos=(560, ys+64+i*30+64), color=(THAT_BLUE), align='center', fontsize=15)
             self.description_labels.append(lbl)
 
+        self.known = [False] * 5
+        self.affordable = [False] * 5
+
         self.reset()
 
     def reset(self):
         self.last_selected = None
+        self.on_wealth_changed()
         self.update_help()
 
     def on_key_down(self, key):
+        if key == key.ESCAPE:
+            if self.last_selected is None:
+                return False
+            self.last_selected = None
+            self.update_help()
+            return True
         if (num := KEY_NUMBERS.get(key)) is not None:
-            if 1 <= num <= 5:
-                self.held_keys.append(num-1)
-        self.update_help()
-
-    def on_key_up(self, key):
-        if (num := KEY_NUMBERS.get(key)) is not None:
-            if 1 <= num <= 5:
-                try:
-                    self.held_keys.remove(num-1)
-                except ValueError:
-                    pass
+            if 1 <= num <= 5 and self.affordable[num - 1]:
+                self.last_selected = num - 1
         self.update_help()
 
     def update_help(self):
-        for sprite in self.bg_sprites:
-            sprite.image = 'action_bg'
-
-        try:
-            num = self.held_keys[-1]
-        except IndexError:
+        if self.last_selected and not self.affordable[self.last_selected]:
             self.last_selected = None
+
+        for sprite, label in zip(self.bg_sprites, self.caption_labels):
+            label.color = (1, 1, 1, 1)
+            if sprite.image != 'action_bg':
+                sprite.image = 'action_bg'
+
+                # https://github.com/lordmauve/wasabi2d/issues/55
+                sprite._set_dirty()
+
+        if self.last_selected is None:
             color = (*THAT_BLUE, 0)
             animate(self.bg_rect, color=(1, 1, 1, 0), duration=0.1)
             animate(self.caption_label, color=color, duration=0.1)
             for label in self.description_labels:
                 animate(label, color=color, duration=0.1)
         else:
+            num = self.last_selected
             print(num, type(num))
-            print(num)
-            self.last_selected = num
             color = (*THAT_BLUE, 1)
             action = self.actions[num]
-            animate(self.bg_rect, color=(1, 1, 1, (1-0.5 ** len(self.held_keys))), duration=0.1)
+            animate(self.bg_rect, color=(1, 1, 1, 0.5), duration=0.1)
             self.caption_label.text = action.caption
             animate(self.caption_label, color=color, duration=0.1)
             for label, text in zip_longest(self.description_labels, action.description, fillvalue=''):
                 label.text = text
                 animate(label, color=color, duration=0.1)
+            print(self.bg_sprites[num])
+            print(self.bg_sprites[num].image)
+
+            self.caption_labels[num].color = THAT_BLUE
             self.bg_sprites[num].image = 'selected_bg'
 
-        #self.bg_sprites[2].image = 'selected_bg'
+            # https://github.com/lordmauve/wasabi2d/issues/55
+            self.bg_sprites[num]._set_dirty()
+
+
+    def on_wealth_changed(self):
+        dirty = False
+        def set_ka(index, known, affordable):
+            if known:
+                if info.learn_action(index):
+                    dirty = True
+            ka = known and affordable
+            if self.affordable[index] != ka:
+                self.affordable[index] = ka
+                dirty = True
+
+        info = self.game.info
+        set_ka(0, True, True)
+        set_ka(1, info.magic >= 1 and info.food >= 1, info.cube >= 1)
+        set_ka(2, info.magic >= 1, info.magic >= 2)
+        set_ka(3, info.thing >= 1 or info.magic >= 5, info.thing >= 1)
+        set_ka(4, info.magic >= 5, info.magic >= 30)
+
+        if dirty:
+            self.reset()

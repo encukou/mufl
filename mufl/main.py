@@ -9,14 +9,18 @@ game.info.magic = 9
 
 #game.go_fish()
 
-#game.go_dice()
+game.go_dice()
 
-game.return_to_island()
+#game.return_to_island()
+
+#game.info.give(magic=1, thing=2)
 
 @event
 def on_key_down(key, mod):
     if key == keys.RETURN:
         key = keys.SPACE
+    if key == keys.BACKSPACE:
+        key = keys.ESCAPE
     if game.on_key_down(key):
         return
     else:
@@ -27,6 +31,8 @@ def on_key_down(key, mod):
 def on_key_up(key, mod):
     if key == keys.RETURN:
         key = keys.SPACE
+    if key == keys.BACKSPACE:
+        key = keys.ESCAPE
     if game.on_key_up(key):
         return
 

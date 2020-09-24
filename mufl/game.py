@@ -19,7 +19,9 @@ class Game:
         self.island_layers = chain.LayerRange(start=6, stop=9)
         self.info_node = InfoNode(self.info_layers)
 
-        self.info = Info(self.scene, self.scene.layers[11], self.scene.layers[12])
+        self.island = None
+        self.info = Info(self, self.scene.layers[11], self.scene.layers[12])
+        self.island = Island(self)
 
         self.scene.chain = [
             self.action_layers,
@@ -27,8 +29,6 @@ class Game:
         ]
 
         self.scene.layers[11].set_effect('dropshadow', radius=3, offset=(0, 0), opacity=3)
-
-        self.island = Island(self)
 
     def go_fish(self):
         self.activity = Fishing(

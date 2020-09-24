@@ -23,6 +23,8 @@ class VisualizedProperty:
             animate(sprite, color=(*sprite.color[:3], 0), duration=.2)
             animate(label, color=(*label.color[:3], 0), duration=.2)
         label.text = str(value)
+        if obj.game.island:
+            obj.game.island.on_wealth_changed()
 
     def __get__(self, obj, owner):
         if obj is None:
@@ -42,8 +44,9 @@ COLORS = {
 class Info:
     _row_now = 0
 
-    def __init__(self, scene, perm_layer, temp_layer):
-        self.scene = scene
+    def __init__(self, game, perm_layer, temp_layer):
+        self.game = game
+        self.scene = game.scene
         self.perm_layer = perm_layer
         self.temp_layer = temp_layer
 
@@ -57,12 +60,16 @@ class Info:
         self.food = 0
         self.magic = 0
         self.cube = 0
+        self.thing = 0
 
         self.boxfish = []
+
+        self.known_actions = [False] * 5
 
     food = VisualizedProperty()
     magic = VisualizedProperty()
     cube = VisualizedProperty()
+    thing = VisualizedProperty()
 
     def add_boxfish(self, color):
         self.boxfish.append(color)
@@ -103,6 +110,12 @@ class Info:
 
         for row, (name, amount) in enumerate(attrs.items()):
             clock.coro.run(go(name, amount, row))
+
+    def learn_action(self, index):
+        if not self.known_actions[index]:
+            self.known_actions[index] = True
+            return True
+        return False
 
 
 @dataclass

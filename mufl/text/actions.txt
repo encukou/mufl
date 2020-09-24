@@ -71,7 +71,7 @@ You need Items to cast shadows.
 ------------------- 8< -------------------
 
 Cast  Arcane Missile
-magic x30
+magic ×30
 
 Deals 3d6 Arcane damage to target opponent,
 and may Stun for 1d4 turns.
