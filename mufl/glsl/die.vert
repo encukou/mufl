@@ -6,8 +6,10 @@ uniform vec3 pos;
 uniform float size;
 
 in vec3 in_vert;
+in vec3 in_color;
 in ivec2 in_uv;
 out vec2 uv;
+out vec3 color;
 uniform sampler2D tex;
 
 void main() {

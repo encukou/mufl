@@ -10,11 +10,12 @@ from wasabi2d.allocators.packed import PackedBuffer
 from wasabi2d import clock, keyboard
 import numpy
 import numpy as np
+from numpy.linalg import norm as linalg_norm
 from pyrr import Quaternion, Vector3
 
 # Parts pilfered from wasabi2d/primitives/sprites.py
 
-DAMPING = 0.8
+DAMPING = 0.9
 DAMPING_BOUNCE = 0.7
 
 UP = Vector3((0, 0, 1))
@@ -107,6 +108,7 @@ class DrawContext:
         self.die.prog['pos'] = tuple(self.die.pos)
         self.die.prog['rot'] = tuple(chain(*self.die.rotation.matrix44))
         self.die.prog['size'] = self.die.size * (1+self.die.pos[2]/600)
+        self.die.prog['color'] = self.die.color
 
     def __exit__(self, *_):
         self.die.layer.ctx.disable(moderngl.CULL_FACE)
@@ -139,10 +141,11 @@ class Die:
             * Quaternion.from_x_rotation(uniform(0, tau))
         )
         self.randomize_rotation()
-        self.pos = numpy.array([250.+150*i, 250., 50.])
+        self.pos = numpy.array([250.+150*(i//4), 250.+50*(i%4), 150.])
         self.speed = get_rand_speed()
         self.size = 24
         self.r = sqrt(3) * self.size
+        self.sq_r = self.r ** 2
         self.gravity = 20
         self.face = None
         self.locked = False
@@ -164,11 +167,13 @@ class Die:
         #self.rotation_speed = Quaternion()
         #self.rotation = Quaternion()
 
+        self.color = [(1,1,1),(0,0,1),(0,1,0),(1,0,0),(1,1,0),(0,1,1),(1,0,1),(0,0,0)][i%8]
+
     def randomize_rotation(self):
         self.rotation_speed = (
-            Quaternion.from_x_rotation(uniform(0, tau))
-            * Quaternion.from_y_rotation(uniform(0, tau))
-            * Quaternion.from_z_rotation(uniform(0, tau))
+            Quaternion.from_x_rotation(uniform(0, tau*5))
+            * Quaternion.from_y_rotation(uniform(0, tau*5))
+            * Quaternion.from_z_rotation(uniform(0, tau*5))
         )
 
     def _update(self):
@@ -223,7 +228,7 @@ class Die:
             aa = numpy.concatenate((a, -a))
             face_arg = aa.argmax()
             self.face = (1, 3, 2, 1, 4, 0)[face_arg]
-            if aa[face_arg] > 0.93:
+            if aa[face_arg] > 0.98:
                 self.locked = True
                 self.pos[2] = self.r
                 return
@@ -242,27 +247,28 @@ class Die:
         self.bounce(self.pos[1], (0, 1, 0))
         self.bounce(self.scene.height - self.pos[1], (0, -1, 0))
         self.bounce(self.pos[2], (0, 0, 1))
+        #self.bounce(hypot(self.pos[1] - self.pos[0]), (sqrt(1/2), -sqrt(1/2), 0))
         try:
             self.rotation *= self.rotation_speed.power(dt)
         except AssertionError as e:
-            print('AssertionError in quaternion power:', e)
+            print('AssertionError in pyrr quaternion power:', e)
             pass
         self.speed *= DAMPING ** dt
         self.speed[2] -= self.gravity * dt
 
     def bounce(self, dist, norm):
         if dist > self.r:
-            return
+            return False
         norm = numpy.array(norm)
 
         rot = self.rotation
         rot_mat = rot.matrix33
-        low_pt = 10, 10, 10
+        low_pt = None
         for xp in -1, 1:
             for yp in -1, 1:
                 for zp in -1, 1:
                     point = rot_mat * Vector3([xp, yp, zp])
-                    if point[2] < low_pt[2]:
+                    if low_pt is None or point[2] < low_pt[2]:
                         low_pt = point
         if low_pt[2] >= dist:
             return False
@@ -275,11 +281,27 @@ class Die:
         self.speed *= DAMPING_BOUNCE
 
         # Reflect speed
-        for i in range(3):
-            self.speed = self.speed - 2 * self.speed.dot(norm) * norm
-            if norm.dot(self.speed):
-                break
+        if linalg_norm(norm) >= 2:
+            1/0
+        s = self.speed
+        self.speed = s - 2 * s.dot(norm) * norm
+
         self.pos += (self.r - dist) * norm
+        return True
+
+    def collide(self, other):
+        sep = self.pos - other.pos
+        sq_dist = np.sum(sep ** 2., axis=-1) / 4
+        if sq_dist <= self.sq_r:
+            print('BOOM!')
+            dist = sqrt(sq_dist)
+
+            direction = sep / linalg_norm(sep)
+            print(dist, direction)
+            if self.bounce(dist, direction):
+                self.speed += direction * 20
+            if other.bounce(dist, -direction):
+                self.speed -= direction * 20
 
 class DiceThrowing:
     def __init__(self, game, on_finish):
@@ -287,9 +309,15 @@ class DiceThrowing:
         self.on_finish = on_finish
 
         dice_layer = game.scene.layers[1]
-        self.dice = [Die(self, dice_layer, i) for i in range(3)]
+        dice_layer.set_effect('dropshadow', radius=3, opacity=2, offset=(0, 0))
+        self.dice = [Die(self, dice_layer, i) for i in range(10)]
 
         clock.each_tick(self.collide)
 
     def collide(self, dt):
-        print([die.face for die in self.dice])
+        #print([die.face for die in self.dice])
+        to_collide = []
+        for die in self.dice:
+            for other in to_collide:
+                die.collide(other)
+            to_collide.append(die)
