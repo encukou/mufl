@@ -208,22 +208,11 @@ class Die:
     def advance(self, dt):
         self.pos += self.speed
         r = self.r
-        if self.pos[0] < r:
-            self.speed[0] = abs(self.speed[0])
-            #self.randomize_rotation()
-        if self.pos[1] < r:
-            self.speed[1] = abs(self.speed[1])
-            #self.randomize_rotation()
-        if self.pos[0] > self.scene.width - r:
-            self.speed[0] = -abs(self.speed[0])
-            #self.randomize_rotation()
-        if self.pos[1] > self.scene.height - r:
-            self.speed[1] = -abs(self.speed[1])
-            #self.randomize_rotation()
-        if self.pos[2] < 0:
-            self.bounce()
-            #self.pos[2] = 0
-            self.speed[2] = abs(self.speed[2])
+        self._try_bounce(self.pos[0], (1, 0, 0))
+        self._try_bounce(self.scene.width - self.pos[0], (-1, 0, 0))
+        self._try_bounce(self.pos[1], (0, 1, 0))
+        self._try_bounce(self.scene.height - self.pos[1], (0, -1, 0))
+        self._try_bounce(self.pos[2], (0, 0, 1))
         try:
             self.rotation *= self.rotation_speed.power(dt)
         except AssertionError as e:
@@ -232,7 +221,18 @@ class Die:
         self.speed *= 0.9 ** dt
         self.speed[2] -= self.gravity * dt
 
-    def bounce(self):
+    def _try_bounce(self, dist, norm):
+        if dist > self.r:
+            return
+        norm = numpy.array(norm)
+        if self.bounce(dist, norm):
+            for i in range(3):
+                self.speed = self.speed - 2 * self.speed.dot(norm) * norm
+                if norm.dot(self.speed):
+                    break
+            self.pos += (self.r - dist) * norm
+
+    def bounce(self, dist, norm=(0, 0, 1)):
         rot = self.rotation
         rot_mat = rot.matrix33
         low_pt = 0, 0, 0
@@ -242,12 +242,15 @@ class Die:
                     point = rot_mat * Vector3([xp, yp, zp])
                     if point[2] < low_pt[2]:
                         low_pt = point
-        if low_pt[2] >= 0:
-            return
-        rot_imp = Vector3((0, 0, -1)).cross(Vector3((*low_pt.xy, 0.0))) * (.1 + abs(self.speed[2]) / 10)
-        riq = Quaternion.from_axis(-rot_imp)
-        self.rotation_speed = Quaternion().lerp(riq * self.rotation_speed, 0.9)
-        self.speed *= 0.7
+        if low_pt[2] >= dist:
+            return False
+        rot_imp = Vector3(norm).cross(Vector3((*low_pt.xy, 0.0))) * (.5 + hypot(*self.speed) / 10)
+        riq = Quaternion.from_axis(rot_imp)
+        ump = -Vector3(self.speed).cross(norm)
+        umpq = Quaternion.from_axis(ump)
+        self.rotation_speed = Quaternion().lerp(umpq * riq * self.rotation_speed, 0.7)
+        self.speed *= 0.9
+        return True
 
 class DiceThrowing:
     def __init__(self, game, on_finish):
