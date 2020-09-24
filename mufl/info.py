@@ -60,18 +60,25 @@ class Info:
     magic = VisualizedProperty()
     cube = VisualizedProperty()
 
-    def give(self, sleep=0, **attrs):
+    def give(self, sleep=0, pos=None, outline=False, hoffset=1, **attrs):
         attrs = {n: v for n, v in attrs.items() if v}
         tasks = []
         w = 32
         h = 32
+        if pos is None:
+            pos = self.scene.width // 2, self.scene.height // 2 - 3 * h
         total = sum(attrs.values())
+        if not total:
+            return
+        self.temp_layer.clear_effect()
+        if outline:
+            self.temp_layer.set_effect('dropshadow', radius=3, opacity=2, offset=(0, 0))
         async def go(name, amount, row):
             task = clock.coro.sleep(row/5)
             tasks.append(task)
             await task
-            x = (self.scene.width - w * (amount+1)) // 2
-            y = self.scene.height // 2 + h * (row - 2 - len(attrs))
+            x = pos[0] - (w * (amount+1)) // 2
+            y = pos[1] + h * (row - len(attrs) * hoffset + hoffset)
             async def go_one(i):
                 sprite = self.temp_layer.add_sprite(name, pos=(x + w + i * w, y), color=COLORS[name], scale=0)
                 await animate(sprite, scale=1, duration=0.25)

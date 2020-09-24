@@ -92,6 +92,22 @@ CUBE_UV = np.array([
 ], dtype='u4')
 
 
+FACE_NAMES = (
+    'die_front',
+    'die_side',
+    'die_back',
+    'die_top',
+    'die_bottom',
+)
+BONUSES = (
+    {'magic': 2, 'food': 1},
+    {'magic': 2},
+    {'magic': 1},
+    {'food': 1},
+    {'food': 2},
+)
+
+
 @dataclass
 class DrawContext:
     tex: moderngl.Texture
@@ -228,7 +244,7 @@ class Die:
             aa = numpy.concatenate((a, -a))
             face_arg = aa.argmax()
             self.face = (1, 3, 2, 1, 4, 0)[face_arg]
-            if aa[face_arg] > 0.98:
+            if aa[face_arg] > 0.99:
                 self.locked = True
                 self.pos[2] = self.r
                 return
@@ -293,17 +309,17 @@ class Die:
         sep = self.pos - other.pos
         sq_dist = np.sum(sep ** 2., axis=-1) / 4
         if sq_dist <= self.sq_r:
-            print('BOOM!')
             dist = sqrt(sq_dist)
 
             direction = sep / linalg_norm(sep)
-            print(dist, direction)
             if self.bounce(dist, direction):
                 self.speed += direction * 20
             if other.bounce(dist, -direction):
                 self.speed -= direction * 20
 
 class DiceThrowing:
+    end_fadeout_scale = 0
+
     def __init__(self, game, on_finish):
         self.game = game
         self.on_finish = on_finish
@@ -315,9 +331,17 @@ class DiceThrowing:
         clock.each_tick(self.collide)
 
     def collide(self, dt):
-        #print([die.face for die in self.dice])
         to_collide = []
         for die in self.dice:
             for other in to_collide:
                 die.collide(other)
             to_collide.append(die)
+
+        print([d.locked for d in self.dice])
+        if all(d.locked for d in self.dice):
+            for die in self.dice:
+                bonuses = BONUSES[die.face]
+                print(bonuses)
+                self.game.info.give(**bonuses, pos=die.pos[:2], sleep=1 + 0.5 * len(self.dice), outline=True, hoffset=0.5)
+            clock.unschedule(self.collide)
+            self.on_finish()

@@ -21,7 +21,7 @@ class Game:
 
         self.scene.chain = [
             self.action_layers,
-            #self.info_node,
+            self.info_node,
         ]
 
         self.scene.layers[11].set_effect('dropshadow', radius=3, offset=(0, 0), opacity=3)
@@ -42,7 +42,7 @@ class Game:
             scale=hypot(self.scene.width, self.scene.height)//2 / 50,
             pos=(self.scene.width//2, self.scene.height*0.55),
         )
-        animate(circ, scale=100/64, duration=5, tween='accelerate')
+        animate(circ, scale=getattr(self.activity, 'end_fadeout_scale', 100/64), duration=5, tween='accelerate')
         self.scene.chain = [
             chain.Fill(color=(.1, .1, .1, 1)),
             chain.Mask(
