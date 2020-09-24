@@ -63,6 +63,9 @@ class Info:
     magic = VisualizedProperty()
     cube = VisualizedProperty()
 
+    def add_boxfish(self, color):
+        self.boxfish.append(color)
+
     def give(self, sleep=0, pos=None, outline=False, hoffset=1, **attrs):
         attrs = {n: v for n, v in attrs.items() if v}
         tasks = []

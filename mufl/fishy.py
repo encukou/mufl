@@ -61,6 +61,7 @@ class Fish:
         elif self.bonus['magic']:
             kind = 'fish_scaly'
         color = colorsys.hsv_to_rgb(hue, .7, .9)
+        self.color = color
         sprite = layer.add_sprite(kind, anchor_x=anchor_x, anchor_y=anchor_y, color=color)
         self.mouth_sprite = layer.add_sprite('fish_mouth', color=color)
         self.fin_sprite = layer.add_sprite('fin', color=color, pos=fin_pos)
@@ -324,6 +325,8 @@ class Hook:
         clock.schedule(self.fishing.spawner.stop, 3, strong=True)
         clock.schedule(lambda: setattr(self, 'active', False), 0.5, strong=True)
 
+        if self.hooked_fish.bonus['cube']:
+            self.fishing.game.info.add_boxfish(self.hooked_fish.color)
         self.fishing.on_finish(**self.hooked_fish.bonus)
 
     async def cool(self):
