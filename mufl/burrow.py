@@ -36,6 +36,12 @@ ANGLES = {
     (-1, 0): tau/2,
     (0, -1): tau*3/4,
 }
+ROTS = {
+    (1, 0): 0,
+    (0, 1): 1,
+    (-1, 0): 2,
+    (0, -1): 3,
+}
 
 
 class Burrowing:
@@ -71,9 +77,12 @@ class Burrowing:
         self.arrow_sprite = self.hypno_layer.add_sprite('arrow_guide', color=(1, 1, 1, 0), pos=tile_pos(0, -1), angle=tau/4)
 
         self.tile_sprites = {}
+        self.thing = {}
         for x in range(4):
             for y in range(5):
-                self.tile_sprites[x, y] = self.tile_layer.add_sprite('block_10000', pos=tile_pos(x, y))
+                s = self.tile_sprites[x, y] = self.tile_layer.add_sprite('block_00000', pos=tile_pos(x, y))
+                t = self.thing[x, y] = ThingTile()
+                t.update_sprite(s)
 
         x, y = tile_pos(0, -1)
         self.worm_sprites = [
@@ -115,24 +124,25 @@ class Burrowing:
                 self.hypno_emitters.append(em)
 
         for card in (
-            'card_foot',
-            'card_foot',
-            'card_foot',
-            'card_foot',
-            'card_foot',
-            'card_left',
-            'card_left',
-            'card_foot',
-            'card_foot',
-            'card_right',
-            'card_foot',
-            'card_foot',
-            'card_foot',
-            'card_right',
-            'card_foot',
-            'card_foot',
-            'card_left',
-            'card_left',
+            'card_foot','card_left','card_foot','card_right',
+            #'card_foot',
+            #'card_foot',
+            #'card_foot',
+            #'card_foot',
+            #'card_foot',
+            #'card_left',
+            #'card_left',
+            #'card_foot',
+            #'card_foot',
+            #'card_right',
+            #'card_foot',
+            #'card_foot',
+            #'card_foot',
+            #'card_right',
+            #'card_foot',
+            #'card_foot',
+            #'card_left',
+            #'card_left',
             'card_foot',
             'card_foot',
             'card_foot',
@@ -295,15 +305,15 @@ class Burrowing:
             await clock.coro.sleep(0.2)
 
     def update_arrow(self):
-        x, y, d = self.get_end_pos()
+        x, y, d, crashed = self.get_end_pos()
         self.arrow_sprite.pos = tile_pos(x, y)
-        try:
+        if crashed:
+            change_sprite_image(self.arrow_sprite, 'nada_guide')
+            return False
+        else:
             self.arrow_sprite.angle = ANGLES[d]
             change_sprite_image(self.arrow_sprite, 'arrow_guide')
             return True
-        except KeyError:
-            change_sprite_image(self.arrow_sprite, 'nada_guide')
-            return False
 
     def iter_path(self):
         pos = [0, -1]
@@ -319,7 +329,6 @@ class Burrowing:
                 dx, dy = d
                 d = -dy, dx
             if not ((0 <= pos[0] < 4) and (0 <= pos[1] < 5)):
-                d = None
                 yield tuple(pos), d, card, True
                 return
             yield tuple(pos), d, card, False
@@ -327,7 +336,7 @@ class Burrowing:
     def get_end_pos(self):
         for pos, d, card, crashed in self.iter_path():
             pass
-        return (*pos, d)
+        return (*pos, d, crashed)
 
     async def burrow(self):
         self.game.info.magic -= 2
@@ -338,33 +347,95 @@ class Burrowing:
             else:
                 main_coro = coro
         await main_coro
-        self.game.info.give(thing=1)
+        self.game.info.thing += 1
         self.game.finish_activity(speedup=3)
 
     async def _burrow_one(self, sprite, slp):
         is_head = not slp
-        pos = [0, -1]
-        d = (0, 1)
         D = 1/2
+        prev_pos = prev_prev_pos = (0, -1)
         if slp:
-            await animate(sprite, pos=tile_pos(*pos), duration=slp*D/5)
+            await animate(sprite, pos=tile_pos(*prev_pos), duration=slp*D/5)
         for pos, d, card, crashed in self.iter_path():
             if is_head and card.sel_sprite:
-                animate(card.sel_sprite, scale=2, duration=D)
+                animate(card.sel_sprite, scale=0.5, duration=D/2)
 
-            if crashed:
-                break
-            if card.value == 'card_foot':
-                await animate(sprite, pos=tile_pos(*pos), duration=D)
-            elif card.value == 'card_left':
-                await animate(sprite, angle=sprite.angle-tau/4, duration=D/2)
-            elif card.value == 'card_right':
-                await animate(sprite, angle=sprite.angle+tau/4, duration=D/2)
+            if not crashed:
+                if card.value == 'card_foot':
+                    anim = animate(sprite, pos=tile_pos(*pos), duration=D)
+                    if is_head:
+                        await clock.coro.sleep(D/2)
+                        x, y = pos
+                        if tile := self.thing.get(pos):
+                            tile.set_wormy_corners(d)
+                            tile.update_sprite(self.tile_sprites[pos])
+                        if prev_tile := self.thing.get(prev_pos):
+                            print(prev_tile, prev_pos)
+                            prev_tile.set_wormy_corners(d, 2)
+                            prev_tile.update_sprite(self.tile_sprites[prev_pos])
+                    await anim
+                    if is_head:
+                        if tile := self.thing.get((x, y)):
+                            tile.filled = True
+                            tile.update_sprite(self.tile_sprites[pos])
+                elif card.value == 'card_left':
+                    await animate(sprite, angle=sprite.angle-tau/4, duration=D/2)
+                elif card.value == 'card_right':
+                    await animate(sprite, angle=sprite.angle+tau/4, duration=D/2)
 
-            if is_head and card.sel_sprite:
-                animate(card.sel_sprite, scale=0, y=-100, duration=D)
+            if is_head:
+                if card.sel_sprite:
+                    animate(card.sel_sprite, scale=0, color=(1, 1, 1, 0), duration=D)
+
+                prev_prev_pos = prev_pos
+                prev_pos = pos
 
         await animate(sprite, scale=0, duration=(10-slp)/20)
+
+
+class ThingTile:
+    def __init__(self):
+        self.filled = False
+        self.corners = [False] * 4
+
+    def update_sprite(self, sprite):
+        fc = '01'[self.filled]
+        num_corners = sum(self.corners)
+        if num_corners == 0:
+            image = f'block_{fc}0000'
+            rotation = 0
+        elif num_corners == 1:
+            image = f'block_{fc}1000'
+            rotation = tau/4 * self.corners.index(True)
+        elif num_corners == 2:
+            if self.corners == [True, False, True, False]:
+                image = f'block_{fc}1010'
+                rotation = 0
+            elif self.corners == [False, True, False, True]:
+                image = f'block_{fc}1010'
+                rotation = tau/4
+            elif self.corners == [True, False, False, True]:
+                image = f'block_{fc}1100'
+                rotation = tau*3/4
+            else:
+                image = f'block_{fc}1100'
+                rotation = tau/4 * self.corners.index(True)
+        elif num_corners == 3:
+            image = f'block_{fc}1110'
+            rotation = tau/4 * (self.corners.index(False) + 2)
+        else:
+            image = f'block_{fc}1111'
+            rotation = 0
+        change_sprite_image(sprite, image)
+        sprite.angle = rotation
+
+    def set_wormy_corners(self, d, plus=0):
+        rot = ROTS[d] + plus
+        self.set_corner(rot)
+        self.set_corner(rot-1)
+
+    def set_corner(self, c):
+        self.corners[c%4] = True
 
 
 def sched(func, time):

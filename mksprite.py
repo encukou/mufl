@@ -58,10 +58,12 @@ mksprite(2, 4, 1, 1, 'block_11100')
 mksprite(3, 4, 1, 1, 'block_11010')
 mksprite(4, 4, 1, 1, 'block_11110')
 mksprite(5, 4, 1, 1, 'block_11111')
-mksprite(6, 4, 1, 1, 'block_01000')
-mksprite(7, 4, 1, 1, 'block_01100')
-mksprite(8, 4, 1, 1, 'block_01010')
-mksprite(9, 4, 1, 1, 'block_01111')
+mksprite(6, 4, 1, 1, 'block_00000')
+mksprite(7, 4, 1, 1, 'block_01000')
+mksprite(8, 4, 1, 1, 'block_01100')
+mksprite(9, 4, 1, 1, 'block_01010')
+mksprite(10, 4, 1, 1, 'block_01110')
+mksprite(11, 4, 1, 1, 'block_01111')
 
 
 def mkdie():
