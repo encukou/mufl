@@ -4,8 +4,12 @@ from .game import Game
 
 game = Game()
 
-game.info.food = game.info.magic = game.info.cube = 1
+game.island.last_selected = 3
+game.info.food = game.info.magic = game.info.cube = 30
+game.info.cube = 6
 #game.info.magic = 5
+game.island.on_key_down(keys.KP3)
+game.island.on_key_down(keys.SPACE)
 
 @event
 def on_key_down(key, mod):

@@ -6,6 +6,7 @@ from .fishy import Fishing
 from .dicy import DiceThrowing
 from .info import Info, InfoNode
 from .island import Island
+from .burrow import Burrowing
 
 
 class Game:
@@ -61,6 +62,8 @@ class Game:
                 self.go_fish()
             elif idx == 1:
                 self.go_dice()
+            elif idx == 2:
+                self.go_burrow()
             else:
                 await black
                 print('ERROR, unknown action')
@@ -89,6 +92,9 @@ class Game:
         self.activity = DiceThrowing(
             self, on_finish=self.finish_activity,
         )
+
+    def go_burrow(self):
+        self.activity = Burrowing(self)
 
     def return_to_island(self):
         self.activity = self.island

@@ -5,7 +5,7 @@ from itertools import zip_longest
 from wasabi2d import animate
 
 from .info import COLORS as BONUS_COLORS
-from .common import add_key_icon, add_space_instruction, KEY_NUMBERS
+from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, change_sprite_image
 
 THAT_BLUE = 0.1, 0.3, 0.8
 
@@ -208,9 +208,3 @@ class Island:
 
         if dirty:
             self.reset()
-
-def change_sprite_image(sprite, image):
-    "Workaround for https://github.com/lordmauve/wasabi2d/issues/55 "
-    if sprite.image != image:
-        sprite.image = image
-        sprite._set_dirty()

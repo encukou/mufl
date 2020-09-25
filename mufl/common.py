@@ -34,3 +34,9 @@ def add_space_instruction(layer, text):
     l.scale = 1/2
     return s, l
 
+
+def change_sprite_image(sprite, image):
+    "Workaround for https://github.com/lordmauve/wasabi2d/issues/55 "
+    if sprite.image != image:
+        sprite.image = image
+        sprite._set_dirty()
