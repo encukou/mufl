@@ -34,6 +34,10 @@ mksprite(5, 1, 2, 2, 'hypno')
 
 mksprite(15, 1, 1, 1, 'logo')
 
+mksprite(0, 1.5, 0.5, 0.5, 'arrow')
+mksprite(0.5, 1.5, 0.5, 0.5, 'arrow_guide')
+mksprite(1, 1.5, 0.5, 0.5, 'nada_guide')
+
 mksprite(0, 2, 1, 1, 'die_front')
 mksprite(1, 2, 1, 1, 'die_side')
 mksprite(2, 2, 1, 1, 'die_back')
@@ -44,8 +48,6 @@ mksprite(8, 2, 1, 2, 'card_back')
 mksprite(9, 2, 1, 2, 'card_foot')
 mksprite(10, 2, 1, 2, 'card_right')
 mksprite(11, 2, 1, 2, 'card_left')
-
-mksprite(0, 2.5, 0.5, 0.5, 'arrow')
 
 mksprite(12, 2, 4, 1.5, 'action_bg')
 mksprite(12, 3.5, 4, 1.5, 'selected_bg')

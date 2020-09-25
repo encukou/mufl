@@ -117,9 +117,9 @@
      borderopacity="1.0"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:zoom="3.9560203"
-     inkscape:cx="407.89284"
-     inkscape:cy="141.85152"
+     inkscape:zoom="22.37863"
+     inkscape:cx="49.615673"
+     inkscape:cy="108.53543"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      inkscape:document-rotation="0"
@@ -867,7 +867,7 @@
     <path
        id="rect987"
        style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
-       d="m 2.1166717,29.258332 h 2.11666 V 27.78125 l 2.11667,1.852083 -2.11667,2.116667 v -1.741668 h -2.11666 z"
+       d="m 2.1166717,29.258332 h 2.11666 l 1.6e-6,-1.741665 2.1166684,2.116666 -2.11667,2.116667 v -1.741668 h -2.11666 z"
        sodipodi:nodetypes="cccccccc" />
     <path
        id="path993"
@@ -2128,5 +2128,28 @@
        inkscape:transform-center-x="1.9569097"
        inkscape:transform-center-y="1.7970669"
        transform="rotate(179.88105,101.58852,33.858448)" />
+    <circle
+       style="opacity:1;fill:#ffeeaa;fill-opacity:1;fill-rule:evenodd;stroke:#cccccc;stroke-width:1.05833333;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0.75;paint-order:normal"
+       id="path1700"
+       cx="160.86667"
+       cy="8.4666662"
+       r="7.4083333" />
+    <path
+       id="path1702"
+       style="fill:#ffffff;fill-rule:evenodd;stroke:#000000;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none"
+       d="m 11.64167,29.258332 h 2.11666 l 3e-6,-1.741665 L 15.875,29.633333 13.75833,31.75 v -1.741668 h -2.11666 z"
+       sodipodi:nodetypes="cccccccc" />
+    <circle
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+       id="path1704"
+       cx="10.715625"
+       cy="29.633333"
+       r="0.39687499" />
+    <circle
+       style="opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:#000000;stroke-width:0.264583;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;paint-order:normal"
+       id="circle1706"
+       cx="9.3927088"
+       cy="29.633333"
+       r="0.39687499" />
   </g>
 </svg>

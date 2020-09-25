@@ -6,13 +6,25 @@ from wasabi2d import clock, animate, keys
 from .common import add_key_icon, change_sprite_image, KEY_NUMBERS, add_space_instruction
 
 CARD_COLOR = 0, 0, 0.02
+FACE_COLOR = {
+    'card_foot': (0.73, 0.0, 1.0),
+    'card_left': (0.0, 1.0, 0.85),
+    'card_right': (0.0, 0.8, 1.0),
+}
+
+ANGLES = {
+    (1, 0): 0,
+    (0, 1): tau/4,
+    (-1, 0): tau/2,
+    (0, -1): tau*3/4,
+}
 
 def deck_pos(i):
-    return 280 + 80*i, 128-16-8
+    return 280 + 80*i, 128-24
 
 
 def tile_pos(x, y):
-    return 304 + x * 63, 300 + y * 63
+    return 304 + x * 62, 315 + y * 62
 
 
 class Burrowing:
@@ -30,7 +42,7 @@ class Burrowing:
         for i in range(4):
             paper = self.deck_layer.add_sprite('card', color=CARD_COLOR, pos=deck_pos(i))
             ink = self.card_layer1.add_sprite('card_back', pos=deck_pos(i))
-            k = add_key_icon(self.key_layer1, self.key_layer2, 280 + 80*i + 4, 16+4, str(i+1))
+            k = add_key_icon(self.key_layer1, self.key_layer2, 280 + 80*i + 4, 24, str(i+1))
             self.deck_sprites.append((paper, ink, *k))
 
         self.space_sprites = add_space_instruction(self.deck_layer, 'Go')
@@ -53,6 +65,8 @@ class Burrowing:
         self.decks[2].append('card_right')
         self.decks[3].append('card_foot')
 
+        self.arrow_sprite = self.hypno_layer.add_sprite('arrow_guide', color=(1, 1, 1, 0), pos=tile_pos(0, -1), angle=tau/4)
+
         async def init_anim():
             await clock.coro.sleep(0.5)
             for i in range(len(self.decks)):
@@ -60,6 +74,7 @@ class Burrowing:
             await clock.coro.sleep(0.5)
             await self.add_card(0)
             self.selecting = True
+            clock.coro.run(self.anim_arrow())
 
         self.paper_sprites = {}
         self.ink_sprites = {}
@@ -82,10 +97,19 @@ class Burrowing:
                 )
                 self.hypno_emitters.append(em)
 
+        x, y = tile_pos(0, -1)
         self.worm_sprites = [
-            self.worm_layer.add_sprite('worm_segment', x=i*16, y=50)
-            for i in range(10)
+            self.worm_layer.add_sprite('worm_segment', pos=(x-i*16*0.95**i, y+32*(1-0.9**i)), scale=0.9**i)
+            for i in reversed(range(10))
         ]
+
+
+    async def anim_arrow(self):
+        while self.selecting:
+            await animate(self.arrow_sprite, color=(1, 1, 1, 0.6), duration=0.2)
+            await clock.coro.sleep(0.5)
+            await animate(self.arrow_sprite, color=(1, 1, 1, 0), duration=0.2)
+            await clock.coro.sleep(0.2)
 
 
     def turn_over(self, i, delay=0):
@@ -116,7 +140,7 @@ class Burrowing:
             paper.scale_x = ink.scale_x = 1
             paper.y = ink.y = y
             paper.color = CARD_COLOR
-            ink.color = (1, 1, 1, 1)
+            ink.color = (*FACE_COLOR[card], 1)
             change_sprite_image(ink, card)
             maybe_hide_deck()
         async def _turn_over():
@@ -135,6 +159,7 @@ class Burrowing:
                     paper.y = ink.y = y + 32 * t * (t-1)
                     if t > 0.5:
                         change_sprite_image(ink, card)
+                        ink.color = FACE_COLOR[card]
             finally:
                 cancel()
         clock.coro.run(_turn_over())
@@ -151,7 +176,7 @@ class Burrowing:
             paper = self.card_layer2.add_sprite('card', color=CARD_COLOR, pos=pos)
         if not (ink := self.ink_sprites.pop(i, None)):
             print('Missing ink!')
-            ink = self.card_layer3.add_sprite(card, pos=pos)
+            ink = self.card_layer3.add_sprite(card, color=FACE_COLOR[card], pos=pos)
         self.turn_over(i, delay=0.5)
 
         self.deck_sprites.append((paper, ink))
@@ -163,8 +188,17 @@ class Burrowing:
         for spr, sc in (paper, 0.38), (ink, 0.4):
             an = animate(spr, pos=pos, scale=sc, duration=0.1, tween='accel_decel')
 
+        x, y, d = self.get_end_pos()
+        self.arrow_sprite.pos = tile_pos(x, y)
+        try:
+            self.arrow_sprite.angle = ANGLES[d]
+            change_sprite_image(self.arrow_sprite, 'arrow_guide')
+        except KeyError:
+            change_sprite_image(self.arrow_sprite, 'nada_guide')
+            ink.color = (1, 1, 1, 0.5)
+
     def get_selected_pos(self, i):
-        return 32 + 20 + 24 * ((i%32)-1), 180 + 38 * (i//32)
+        return 32 + 20 + 24 * ((i%32)-1), 160 + 38 * (i//32)
 
     def on_key_down(self, key):
         if self.selecting:
@@ -176,4 +210,23 @@ class Burrowing:
                 if cancel := self.turnover_cancels.pop(i, None):
                     cancel()
                 clock.coro.run(self.add_card(i))
+            if key == keys.SPACE:
+                self.selecting = False
 
+    def get_end_pos(self):
+        pos = [0, -1]
+        d = (0, 1)
+        for card in self.selected:
+            if card == 'card_foot':
+                pos[0] += d[0]
+                pos[1] += d[1]
+            elif card == 'card_left':
+                dx, dy = d
+                d = dy, -dx
+            elif card == 'card_right':
+                dx, dy = d
+                d = -dy, dx
+            if not ((0 <= pos[0] < 4) and (0 <= pos[1] < 5)):
+                d = None
+                break
+        return (*pos, d)
