@@ -17,6 +17,7 @@ class Card:
     origin_deck: int = 0
     selected_index: int = 0
     sel_sprite: object = None
+    active: bool = True
 
 
 def deck_pos(i):
@@ -25,16 +26,26 @@ def deck_pos(i):
 def selected_pos(i):
     return 32 + 20 + 24 * ((i%32)-1), 160 + 38 * (i//32)
 
+def tile_pos(x, y):
+    return 304 + x * 62, 315 + y * 62
+
+ANGLES = {
+    (1, 0): 0,
+    (0, 1): tau/4,
+    (-1, 0): tau/2,
+    (0, -1): tau*3/4,
+}
+
 
 class Burrowing:
     def __init__(self, game):
         self.game = game
 
         self.bg_layer = game.scene.layers[0]
-        self.deck_layer = self.tile_layer = game.scene.layers[1]
-        self.turncard_layer = self.worm_layer = game.scene.layers[2]
-        self.selcard_layer = self.hypno_layer = self.key_layer1 = game.scene.layers[3]
-        self.key_layer2 = game.scene.layers[4]
+        self.tile_layer = self.key_layer1 = game.scene.layers[1]
+        self.deck_layer = self.key_layer2 = self.worm_layer = game.scene.layers[2]
+        self.turncard_layer = self.hypno_layer = game.scene.layers[3]
+        self.selcard_layer = game.scene.layers[4]
 
         cards = [Card(c) for c in ['card_foot'] * 22 + ['card_left'] * 20 + ['card_right'] * 20]
         shuffle(cards)
@@ -45,6 +56,7 @@ class Burrowing:
         self.decks[2].append(Card('card_right'))
         self.decks[3].append(Card('card_foot'))
 
+        self.selecting = False
         self.selected = []
 
         self.deck_sprites = []
@@ -55,16 +67,51 @@ class Burrowing:
             self.deck_sprites.append(s)
             self.deck_keylabels.append(k)
 
-        self.selecting = False
+        self.arrow_sprite = self.hypno_layer.add_sprite('arrow_guide', color=(1, 1, 1, 0), pos=tile_pos(0, -1), angle=tau/4)
+
+        self.tile_sprites = {}
+        for x in range(4):
+            for y in range(5):
+                self.tile_sprites[x, y] = self.tile_layer.add_sprite('block_10000', pos=tile_pos(x, y))
+
+        x, y = tile_pos(0, -1)
+        self.worm_sprites = [
+            self.worm_layer.add_sprite('worm_segment', pos=(x-i*16*0.95**i, y+32*(1-0.9**i)), scale=0.9**i)
+            for i in reversed(range(10))
+        ]
+
+        self.space_sprites = add_space_instruction(self.deck_layer, 'Go')
+        for s in self.space_sprites:
+            s.color = (*s.color[:3], 0)
+
         async def start_anim():
             for i, deck in enumerate(self.decks):
                 self.turn_deck(i)
-                await clock.coro.sleep(1/3)
+                await clock.coro.sleep(1/5)
             self.update_deck_sprites()
             self.add_card(0)
             self.selecting = True
+            for s in self.space_sprites:
+                s.color = (*s.color[:3], 1)
+            clock.coro.run(self.anim_arrow())
 
         clock.coro.run(start_anim())
+
+        pg = self.hypno_layer.add_particle_group(
+            'hypno', grow=0.9, max_age=1, spin_drag=1.1,
+        )
+        pg.add_color_stop(0, (1, 1, 1, 0))
+        pg.add_color_stop(.4, (1, 1, 1, 1))
+        pg.add_color_stop(.6, (1, 1, 1, .8))
+        pg.add_color_stop(1, (.8, .8, 1, 0))
+        self.hypno_emitters = []
+        for x in range(4):
+            for y in range(5):
+                em = pg.add_emitter(
+                    rate=1, pos=tile_pos(x, y), pos_spread=(16, 16),
+                    vel_spread=(8, 8), size=16, spin_spread=tau,
+                )
+                self.hypno_emitters.append(em)
 
     def update_deck_sprites(self):
         for i, deck in enumerate(self.decks):
@@ -130,7 +177,7 @@ class Burrowing:
         async for t in clock.coro.frames(seconds=duration):
             t /= duration
             s.scale_x = abs(1 - 2*t)
-            s.y = y + 32 * t * (t-1)
+            s.y = y + 64 * t * (t-1)
             if t > 0.5:
                 change_sprite_image(s, end_face)
 
@@ -144,6 +191,7 @@ class Burrowing:
         card.origin_deck = i
         card.selected_index = len(self.selected)
         self.selected.append(card)
+        card.active = self.update_arrow()
         self.set_animation(card, self.do_put_animation(card))
         card.sel_sprite = self.selcard_layer.add_sprite(
             card.value,
@@ -158,14 +206,19 @@ class Burrowing:
             card.value,
             pos=deck_pos(card.origin_deck),
         )
+        if card.active:
+            end_color = 1, 1, 1, 1
+        else:
+            end_color = .5, .5, .5, .5
         pos = selected_pos(card.selected_index)
-        anim = animate(card.anim_sprite, pos=pos, scale=0.3, duration=1, tween='accel_decel')
+        animate(card.anim_sprite, color=end_color, duration=1, tween='accelerate')
+        anim = animate(card.anim_sprite, pos=pos, scale=0.3, color=end_color, duration=1, tween='accel_decel')
         try:
             await anim
         finally:
             anim.stop(complete=True)
             if card.sel_sprite:
-                card.sel_sprite.color = 1, 1, 1, 1
+                card.sel_sprite.color = end_color
 
     async def do_undo_animation(self, card):
         card.anim_sprite = s = self.turncard_layer.add_sprite(
@@ -179,8 +232,6 @@ class Burrowing:
             await anim
         finally:
             anim.stop(complete=True)
-            if card.sel_sprite:
-                card.sel_sprite.color = 1, 1, 1, 1
 
     def undo(self):
         try:
@@ -193,6 +244,7 @@ class Burrowing:
             card.sel_sprite = None
         self.set_animation(card, self.do_undo_animation(card))
         self.update_deck_sprites()
+        self.update_arrow()
 
     def on_key_down(self, key):
         if self.selecting:
@@ -208,3 +260,38 @@ class Burrowing:
             if key == keys.SPACE:
                 self.selecting = False
 
+    async def anim_arrow(self):
+        while self.selecting:
+            await animate(self.arrow_sprite, color=(1, 1, 1, 0.6), duration=0.2)
+            await clock.coro.sleep(0.5)
+            await animate(self.arrow_sprite, color=(1, 1, 1, 0), duration=0.2)
+            await clock.coro.sleep(0.2)
+
+    def update_arrow(self):
+        x, y, d = self.get_end_pos()
+        self.arrow_sprite.pos = tile_pos(x, y)
+        try:
+            self.arrow_sprite.angle = ANGLES[d]
+            change_sprite_image(self.arrow_sprite, 'arrow_guide')
+            return True
+        except KeyError:
+            change_sprite_image(self.arrow_sprite, 'nada_guide')
+            return False
+
+    def get_end_pos(self):
+        pos = [0, -1]
+        d = (0, 1)
+        for card in self.selected:
+            if card.value == 'card_foot':
+                pos[0] += d[0]
+                pos[1] += d[1]
+            elif card.value == 'card_left':
+                dx, dy = d
+                d = dy, -dx
+            elif card.value == 'card_right':
+                dx, dy = d
+                d = -dy, dx
+            if not ((0 <= pos[0] < 4) and (0 <= pos[1] < 5)):
+                d = None
+                break
+        return (*pos, d)
