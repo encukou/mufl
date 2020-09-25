@@ -353,42 +353,58 @@ class Burrowing:
     async def _burrow_one(self, sprite, slp):
         is_head = not slp
         D = 1/2
-        prev_pos = prev_prev_pos = (0, -1)
+        prev_pos = (0, -1)
+        prev_d = (0, 1)
         if slp:
             await animate(sprite, pos=tile_pos(*prev_pos), duration=slp*D/5)
         for pos, d, card, crashed in self.iter_path():
             if is_head and card.sel_sprite:
                 animate(card.sel_sprite, scale=0.5, duration=D/2)
 
-            if not crashed:
-                if card.value == 'card_foot':
-                    anim = animate(sprite, pos=tile_pos(*pos), duration=D)
-                    if is_head:
-                        await clock.coro.sleep(D/2)
-                        x, y = pos
-                        if tile := self.thing.get(pos):
-                            tile.set_wormy_corners(d)
-                            tile.update_sprite(self.tile_sprites[pos])
-                        if prev_tile := self.thing.get(prev_pos):
-                            print(prev_tile, prev_pos)
-                            prev_tile.set_wormy_corners(d, 2)
-                            prev_tile.update_sprite(self.tile_sprites[prev_pos])
-                    await anim
-                    if is_head:
-                        if tile := self.thing.get((x, y)):
-                            tile.filled = True
-                            tile.update_sprite(self.tile_sprites[pos])
-                elif card.value == 'card_left':
-                    await animate(sprite, angle=sprite.angle-tau/4, duration=D/2)
-                elif card.value == 'card_right':
-                    await animate(sprite, angle=sprite.angle+tau/4, duration=D/2)
+            if card.value == 'card_foot':
+                anim = animate(sprite, pos=tile_pos(*pos), duration=D)
+                await clock.coro.sleep(D/2)
+                if is_head:
+                    x, y = pos
+                    if tile := self.thing.get(pos):
+                        tile.set_wormy_corners(d)
+                        tile.update_sprite(self.tile_sprites[pos])
+                    if prev_tile := self.thing.get(prev_pos):
+                        prev_tile.set_wormy_corners(d, 2)
+                        prev_tile.update_sprite(self.tile_sprites[prev_pos])
+                    if prev_d != d:
+                        # Paint a corner
+                        r = ROTS[d]
+                        pr = ROTS[prev_d]
+                        if (r % 2) != (pr % 2):
+                            print(r, pr)
+                            x, y = pos
+                            pdx, pdy = prev_d
+                            cx = x - pdx
+                            cy = y - pdy
+                            if ctile := self.thing.get((cx, cy)):
+                                c = r // 2
+                                corner = [(3, 0), (1, 0), (2, 1), (2, 3)][pr][c]
+                                ctile.set_corner(corner + 2)
+                                ctile.update_sprite(self.tile_sprites[cx, cy])
+                if crashed:
+                    anim.stop()
+                    break
+                await anim
+                if is_head:
+                    if tile := self.thing.get((x, y)):
+                        tile.filled = True
+                        tile.update_sprite(self.tile_sprites[pos])
+                prev_d = d
+                prev_pos = pos
+            elif card.value == 'card_left':
+                await animate(sprite, angle=sprite.angle-tau/4, duration=D/2)
+            elif card.value == 'card_right':
+                await animate(sprite, angle=sprite.angle+tau/4, duration=D/2)
 
             if is_head:
                 if card.sel_sprite:
                     animate(card.sel_sprite, scale=0, color=(1, 1, 1, 0), duration=D)
-
-                prev_prev_pos = prev_pos
-                prev_pos = pos
 
         await animate(sprite, scale=0, duration=(10-slp)/20)
 
