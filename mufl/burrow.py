@@ -114,6 +114,32 @@ class Burrowing:
                 )
                 self.hypno_emitters.append(em)
 
+        for card in (
+            'card_foot',
+            'card_foot',
+            'card_foot',
+            'card_foot',
+            'card_foot',
+            'card_left',
+            'card_left',
+            'card_foot',
+            'card_foot',
+            'card_right',
+            'card_foot',
+            'card_foot',
+            'card_foot',
+            'card_right',
+            'card_foot',
+            'card_foot',
+            'card_left',
+            'card_left',
+            'card_foot',
+            'card_foot',
+            'card_foot',
+        ):
+            self.decks[0].append(Card(card))
+            self.add_card(0)
+
     def update_deck_sprites(self):
         for i, deck in enumerate(self.decks):
             for s in self.deck_keylabels[i]:
@@ -279,7 +305,7 @@ class Burrowing:
             change_sprite_image(self.arrow_sprite, 'nada_guide')
             return False
 
-    def get_end_pos(self):
+    def iter_path(self):
         pos = [0, -1]
         d = (0, 1)
         for card in self.selected:
@@ -294,12 +320,26 @@ class Burrowing:
                 d = -dy, dx
             if not ((0 <= pos[0] < 4) and (0 <= pos[1] < 5)):
                 d = None
-                break
+                yield tuple(pos), d, card, True
+                return
+            yield tuple(pos), d, card, False
+
+    def get_end_pos(self):
+        for pos, d, card, crashed in self.iter_path():
+            pass
         return (*pos, d)
 
     async def burrow(self):
+        self.game.info.magic -= 2
         for i, sprite in enumerate(reversed(self.worm_sprites)):
-            clock.coro.run(self._burrow_one(sprite, i))
+            coro = self._burrow_one(sprite, i)
+            if i:
+                clock.coro.run(coro)
+            else:
+                main_coro = coro
+        await main_coro
+        self.game.info.give(thing=1)
+        self.game.finish_activity(speedup=3)
 
     async def _burrow_one(self, sprite, slp):
         is_head = not slp
@@ -308,21 +348,17 @@ class Burrowing:
         D = 1/2
         if slp:
             await animate(sprite, pos=tile_pos(*pos), duration=slp*D/5)
-        for card in self.selected:
+        for pos, d, card, crashed in self.iter_path():
             if is_head and card.sel_sprite:
                 animate(card.sel_sprite, scale=2, duration=D)
 
+            if crashed:
+                break
             if card.value == 'card_foot':
-                pos[0] += d[0]
-                pos[1] += d[1]
                 await animate(sprite, pos=tile_pos(*pos), duration=D)
             elif card.value == 'card_left':
-                dx, dy = d
-                d = dy, -dx
                 await animate(sprite, angle=sprite.angle-tau/4, duration=D/2)
             elif card.value == 'card_right':
-                dx, dy = d
-                d = -dy, dx
                 await animate(sprite, angle=sprite.angle+tau/4, duration=D/2)
 
             if is_head and card.sel_sprite:
