@@ -14,6 +14,7 @@ mksprite(3, 0, 2, 1, 'fish_scaly')
 mksprite(5, 0, 2, 1, 'fish_crown')
 mksprite(7, 0, 1, 1, 'fish_box')
 
+mksprite(9, 0, 1, 1, 'worm_segment')
 mksprite(10, 0, 2, 2, 'blur_circle')
 mksprite(12, 0, 1.5, 1, 'kbd_arrows')
 mksprite(13.5, 0, 1.5, 0.5, 'kbd_space')
@@ -29,6 +30,8 @@ mksprite(2.5, 1, 0.5, 0.5, 'cube')
 mksprite(3, 1, 0.5, 0.5, 'nada')
 mksprite(3.5, 1, 0.5, 0.5, 'thing')
 
+mksprite(5, 1, 2, 2, 'hypno')
+
 mksprite(15, 1, 1, 1, 'logo')
 
 mksprite(0, 2, 1, 1, 'die_front')
@@ -36,12 +39,13 @@ mksprite(1, 2, 1, 1, 'die_side')
 mksprite(2, 2, 1, 1, 'die_back')
 mksprite(3, 2, 1, 1, 'die_top')
 mksprite(4, 2, 1, 1, 'die_bottom')
-mksprite(5, 2, 0.5, 0.5, 'arrow')
 mksprite(7, 2, 1, 2, 'card')
 mksprite(8, 2, 1, 2, 'card_back')
 mksprite(9, 2, 1, 2, 'card_foot')
 mksprite(10, 2, 1, 2, 'card_right')
 mksprite(11, 2, 1, 2, 'card_left')
+
+mksprite(0, 2.5, 0.5, 0.5, 'arrow')
 
 mksprite(12, 2, 4, 1.5, 'action_bg')
 mksprite(12, 3.5, 4, 1.5, 'selected_bg')
