@@ -355,11 +355,9 @@ class DiceThrowing:
                 die.collide(other)
             to_collide.append(die)
 
-        print([d.locked for d in self.dice])
         if all(d.locked for d in self.dice):
             for die in self.dice:
                 bonuses = BONUSES[die.face]
-                print(bonuses)
                 self.game.info.give(**bonuses, pos=die.pos[:2], sleep=0.5 + 0.5 * len(self.dice), outline=True, hoffset=0.5)
 
             def give_bonus_pairs(dt=None):
@@ -374,7 +372,7 @@ class DiceThrowing:
                             )
                             to_check.discard(other)
                             animate(line, stroke_width=5)
-                            bonuses = Counter(BONUSES[die.face]) + Counter(BONUSES[other.face]) + Counter(magic=1)
+                            bonuses = Counter(BONUSES[die.face]) + Counter(BONUSES[other.face]) + Counter(magic=3)
                             midpos = (die.pos[:2] + other.pos[:2]) / 2
                             self.game.info.give(**bonuses, pos=midpos, sleep=1.5, outline=True, hoffset=0.5)
                             animate(die, size=die.size*1.1)
@@ -384,16 +382,16 @@ class DiceThrowing:
                         to_check.add(die)
                 for left_die in set(to_check):
                     animate(left_die, size=left_die.size*0.99)
-                self.on_finish()
+                self.on_finish(speedup=1.1)
 
             clock.unschedule(self.collide)
             clock.schedule(give_bonus_pairs, 0.5 * len(self.dice), strong=True)
 
     def on_key_down(self, key):
         if not self.selecting:
-            return
+            return True
         if key in (keys.ESCAPE, keys.BACKSPACE):
-            self.on_finish(speedup=5)
+            self.game.abort_activity()
             self.selecting = False
             return True
         elif key in (keys.SPACE, keys.RETURN):
@@ -436,7 +434,6 @@ class DiceThrowing:
 
     def adjust_selection(self, avoid=None, time=1):
         num_selected = sum(self.selection)
-        print(num_selected)
         if num_selected > self.game.info.magic:
             for i, sel in reversed(list(enumerate(self.selection))):
                 if sel and i != avoid:

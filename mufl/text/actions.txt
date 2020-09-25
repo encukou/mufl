@@ -13,7 +13,8 @@ hooks, and a surprising amout of burrowing
 worms squirm around in the sand.
 
 
-Fish provide Food, and sometimes Magic.
+Fishing is free, except 1 Food you need each day.
+Fish provide Food, and sometimes Magic or Dice.
 
 
 ------------------- 8< -------------------
@@ -25,7 +26,6 @@ Enchanting arbitrary cube-shaped objects
 to award random rewards is technically
 a level three spell, but any serious
 party magician learns it way, way early.
-
 Iactā!
 
 
@@ -77,7 +77,7 @@ Deals 3d6 Arcane damage to target opponent,
 and may Stun for 1d4 turns.
 
 Perhaps today's world is too civilized
-for battle magic, but hey – this would be
+for battle magic, but hey – casting this would be
 quite something to brag about, if you can
 pull it off!
 

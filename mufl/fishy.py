@@ -2,7 +2,7 @@ from random import randrange, expovariate, random, lognormvariate, choice
 from math import exp, hypot, tau, copysign, log
 import colorsys
 
-from wasabi2d import clock, Group, keyboard
+from wasabi2d import clock, Group, keyboard, keys
 
 from .fixes import animate, fix_transforms
 from .common import add_key_icon, add_space_instruction
@@ -28,6 +28,14 @@ class Fishing:
         l=hud_layer.add_label('Move!', font='kufam_medium', pos=(106, game.scene.height-50), color=(0.1, 0.3, 0.8), fontsize=50)
         l.scale = 1/2
         add_space_instruction(hud_layer, 'Pull!')
+
+    def on_key_down(self, key):
+        if self.hook.hooked_fish:
+            return True
+        if key in (keys.ESCAPE, keys.BACKSPACE):
+            self.game.abort_activity()
+            self.selecting = False
+            return True
 
 
 class Fish:
@@ -110,6 +118,7 @@ class Fish:
                     await clock.coro.sleep(1)
         finally:
             self.task = None
+
 
     async def move_fin(self):
         dur = 0.25

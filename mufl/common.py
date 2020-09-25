@@ -29,8 +29,8 @@ def add_key_icon(layer1, layer2, x, y, label):
 
 def add_space_instruction(layer, text):
     h = 600
-    layer.add_sprite('kbd_space', pos=(2, h-20), anchor_x=0)
+    s = layer.add_sprite('kbd_space', pos=(2, h-20), anchor_x=0)
     l=layer.add_label(text, font='kufam_medium', pos=(106, h-10), color=(0.1, 0.3, 0.8), fontsize=50)
     l.scale = 1/2
-    return l
+    return s, l
 

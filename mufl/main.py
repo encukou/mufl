@@ -4,16 +4,8 @@ from .game import Game
 
 game = Game()
 
-game.info.food = game.info.magic = game.info.cube = 6
-game.info.magic = 9
-
-#game.go_fish()
-
-game.go_dice()
-
-#game.return_to_island()
-
-#game.info.give(magic=1, thing=2)
+game.info.food = game.info.magic = game.info.cube = 4
+game.info.magic = 5
 
 @event
 def on_key_down(key, mod):
@@ -21,11 +13,7 @@ def on_key_down(key, mod):
         key = keys.SPACE
     if key == keys.BACKSPACE:
         key = keys.ESCAPE
-    if game.on_key_down(key):
-        return
-    else:
-        if key == keys.ESCAPE:
-            exit()
+    game.on_key_down(key)
 
 @event
 def on_key_up(key, mod):
@@ -33,7 +21,14 @@ def on_key_up(key, mod):
         key = keys.SPACE
     if key == keys.BACKSPACE:
         key = keys.ESCAPE
-    if game.on_key_up(key):
-        return
+    game.on_key_up(key)
+
+#for i in range(6):
+    #from random import random
+    #import colorsys
+    #hue = random()
+    #color = colorsys.hsv_to_rgb(hue, .7, .9)
+    #game.info.add_boxfish(color)
+
 
 run()

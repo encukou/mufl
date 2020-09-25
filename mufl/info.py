@@ -114,6 +114,8 @@ class Info:
     def learn_action(self, index):
         if not self.known_actions[index]:
             self.known_actions[index] = True
+            if self.game.island:
+                self.game.island.on_wealth_changed()
             return True
         return False
 
