@@ -14,7 +14,7 @@ mksprite(3, 0, 2, 1, 'fish_scaly')
 mksprite(5, 0, 2, 1, 'fish_crown')
 mksprite(7, 0, 1, 1, 'fish_box')
 
-mksprite(9, 0, 1, 1, 'worm_segment')
+mksprite(8, 0, 2, 2, 'worm_segment')
 mksprite(10, 0, 2, 2, 'blur_circle')
 mksprite(12, 0, 1.5, 1, 'kbd_arrows')
 mksprite(13.5, 0, 1.5, 0.5, 'kbd_space')

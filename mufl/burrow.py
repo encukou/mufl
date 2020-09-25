@@ -3,9 +3,10 @@ from math import tau
 from enum import Enum
 from dataclasses import dataclass
 
-from wasabi2d import clock, animate, keys
+from wasabi2d import clock, keys
 
 from .common import add_key_icon, change_sprite_image, KEY_NUMBERS, add_space_instruction
+from .fixes import animate
 
 
 @dataclass
@@ -76,7 +77,7 @@ class Burrowing:
 
         x, y = tile_pos(0, -1)
         self.worm_sprites = [
-            self.worm_layer.add_sprite('worm_segment', pos=(x-i*16*0.95**i, y+32*(1-0.9**i)), scale=0.9**i)
+            self.worm_layer.add_sprite('worm_segment', pos=(x-i*16*0.95**i, y+32*(1-0.9**i)), angle=tau/4, scale=0.9**i)
             for i in reversed(range(10))
         ]
 
@@ -211,8 +212,7 @@ class Burrowing:
         else:
             end_color = .5, .5, .5, .5
         pos = selected_pos(card.selected_index)
-        animate(card.anim_sprite, color=end_color, duration=1, tween='accelerate')
-        anim = animate(card.anim_sprite, pos=pos, scale=0.3, color=end_color, duration=1, tween='accel_decel')
+        anim = animate(card.anim_sprite, pos=pos, scale=0.3, color=end_color, duration=1/3, tween='accel_decel')
         try:
             await anim
         finally:
@@ -227,7 +227,7 @@ class Burrowing:
             scale = 0.3,
         )
         pos = deck_pos(card.origin_deck)
-        anim = animate(card.anim_sprite, pos=pos, scale=1, duration=0.2, tween='linear')
+        anim = animate(card.anim_sprite, pos=pos, scale=1, duration=0.2, tween='accel_decel')
         try:
             await anim
         finally:
@@ -259,6 +259,7 @@ class Burrowing:
                 self.add_card(i)
             if key == keys.SPACE:
                 self.selecting = False
+                clock.coro.run(self.burrow())
 
     async def anim_arrow(self):
         while self.selecting:
@@ -295,3 +296,41 @@ class Burrowing:
                 d = None
                 break
         return (*pos, d)
+
+    async def burrow(self):
+        for i, sprite in enumerate(reversed(self.worm_sprites)):
+            clock.coro.run(self._burrow_one(sprite, i))
+
+    async def _burrow_one(self, sprite, slp):
+        is_head = not slp
+        pos = [0, -1]
+        d = (0, 1)
+        D = 1/2
+        if slp:
+            await animate(sprite, pos=tile_pos(*pos), duration=slp*D/5)
+        for card in self.selected:
+            if is_head and card.sel_sprite:
+                animate(card.sel_sprite, scale=2, duration=D)
+
+            if card.value == 'card_foot':
+                pos[0] += d[0]
+                pos[1] += d[1]
+                await animate(sprite, pos=tile_pos(*pos), duration=D)
+            elif card.value == 'card_left':
+                dx, dy = d
+                d = dy, -dx
+                await animate(sprite, angle=sprite.angle-tau/4, duration=D/2)
+            elif card.value == 'card_right':
+                dx, dy = d
+                d = -dy, dx
+                await animate(sprite, angle=sprite.angle+tau/4, duration=D/2)
+
+            if is_head and card.sel_sprite:
+                animate(card.sel_sprite, scale=0, y=-100, duration=D)
+
+        await animate(sprite, scale=0, duration=(10-slp)/20)
+
+
+def sched(func, time):
+    clock.schedule(func, time, strong=True)
+
