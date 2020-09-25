@@ -128,8 +128,6 @@ class Island:
         self.update_help()
 
     def update_help(self):
-        if sum(self.affordable) == 1:
-            self.last_selected = 0
         if self.last_selected and not self.game.info.known_actions[self.last_selected]:
             self.last_selected = None
 
@@ -147,7 +145,7 @@ class Island:
             elif known:
                 label.color = (1, 1, 1, .5)
                 for o in objs1: o.color = (*o.color[:3], .5)
-                for o in objs2: o.color = (*o.color[:3], 0)
+                for o in objs2: o.color = (*o.color[:3], 1)
             else:
                 label.color = (1, 1, 1, 0)
                 for o in objs1: o.color = (*o.color[:3], 0)
@@ -191,6 +189,8 @@ class Island:
         dirty = False
         def set_ka(index, known, affordable):
             nonlocal dirty
+            if affordable and index and info.food <= 1:
+                affordable = False
             if known:
                 if info.learn_action(index):
                     dirty = True
@@ -201,10 +201,10 @@ class Island:
 
         info = self.game.info
         set_ka(0, True, True)
-        set_ka(1, info.magic >= 1 and info.food >= 1, info.cube >= 1)
-        set_ka(2, info.magic >= 1, info.magic >= 2)
-        set_ka(3, info.thing >= 1 or info.magic >= 5, info.thing >= 1)
-        set_ka(4, info.magic >= 10, info.magic >= 30)
+        set_ka(1, info.food >= 2 and (info.cube >= 1 or info.magic >= 1), info.cube >= 1)
+        set_ka(2, info.food >= 2 and (info.food >= 5 or info.magic >= 1), info.magic >= 2)
+        set_ka(3, info.food >= 2 and (info.thing >= 1 or info.magic >= 5), info.thing >= 1)
+        set_ka(4, info.food >= 2 and info.magic >= 10, info.magic >= 30)
 
         if dirty:
             self.reset()

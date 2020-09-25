@@ -1,5 +1,5 @@
 Cast  for  Fish
-
+food
 
 In a nearby thornbush, you found a stick that
 can serve as a fishing rod – just tie a length
@@ -13,7 +13,7 @@ hooks, and a surprising amout of burrowing
 worms squirm around in the sand.
 
 
-Fishing is free, except 1 Food you need each day.
+You need 1 Food for any activity.
 Fish provide Food, and sometimes Magic or Dice.
 
 
@@ -60,9 +60,8 @@ be able to cast some nifty shadows on the wall.
 
 Maybe you can even spell out a message?
 
-...
-You suddenly remember the four runes
-traditionally used for distress signals:
+You remember an old book that mentioned the
+four runes traditionally used for distress signals:
 H E L P
 
 

@@ -57,7 +57,7 @@ class Info:
             self.sprites[name] = self.perm_layer.add_sprite(name, scale=1/2, pos=(8, 8+16*i), color=(*color[:3], 0))
             self.labels[name] = self.perm_layer.add_label('0', font='kufam_bold', pos=(18, 14+16*i), color=(0.9, 1, 1, 0), fontsize=15)
 
-        self.food = 0
+        self.food = 1
         self.magic = 0
         self.cube = 0
         self.thing = 0

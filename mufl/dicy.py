@@ -439,6 +439,8 @@ class DiceThrowing:
                 if sel and i != avoid:
                     self.toggle_die(i, recurse=False, time=time)
                     break
+        if len(self.dice) == 1:
+            avoid = None
         if num_selected < 1:
             for i, sel in list(enumerate(self.selection)):
                 if not sel and i != avoid:
