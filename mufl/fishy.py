@@ -58,7 +58,7 @@ class Fish:
             kind = 'fish_crown'
             self.bonus['magic'] += randrange(5, 8)
             hue = 1/6
-        elif random() < 1 / 32:
+        elif random() < 1 / 32 and self.fishing.game.info.cube < 6:
             kind = 'fish_box'
             fin_pos = 16, -12
             anchor_x = 20
