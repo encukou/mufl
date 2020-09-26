@@ -1,5 +1,12 @@
-wasabi2d == 1.4.0
-pyrr == 0.10.3
-
-# For https://github.com/lordmauve/wasabi2d/issues/57:
-numpy == 1.17.5
+bresenham==0.2.1
+glcontext==2.2.0
+mapbox-earcut==0.12.10
+moderngl==5.6.2
+multipledispatch==0.6.0
+numpy==1.17.5
+Pillow==7.2.0
+pygame==2.0.0.dev10
+pyrr==0.10.3
+six==1.15.0
+sortedcontainers==2.2.2
+wasabi2d==1.4.0
