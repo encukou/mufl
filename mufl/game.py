@@ -63,7 +63,6 @@ class Game:
         self.storage.load()
         self.info.load(self.storage)
 
-        print(self.info.food)
         if self.info.food > 0:
             self.return_to_island()
         else:
@@ -226,7 +225,6 @@ class Game:
             self.info.give(sleep=1, **bonus)
             await ani
             if self.fade_circ.scale:
-                print(self.fade_circ.scale)
                 await clock.coro.sleep(1)
                 await animate(self.fade_circ, scale=0, duration=self.fade_circ.scale, tween='accelerate')
             self.scene.chain = [

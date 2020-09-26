@@ -1,6 +1,6 @@
 from wasabi2d import clock, keyboard, animate, keys
 
-CHEAT = True
+CHEAT = False
 
 THAT_BLUE = 0.1, 0.3, 0.8
 
