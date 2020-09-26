@@ -139,6 +139,7 @@ class Shadowing:
             self.game.info.display[place] = i
             self.anim_to_place(i, place)
             self.adjust_selection(1)
+        print('That spells: ', self.game.info.message)
 
     def anim_to_place(self, i, place, d=1/4):
         group = self.item_groups[i]

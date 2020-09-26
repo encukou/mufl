@@ -8,6 +8,7 @@ from .info import Info, InfoNode
 from .island import Island
 from .burrow import Burrowing
 from .shadow import Shadowing
+from .missile import AskMissile
 
 
 class Game:
@@ -102,7 +103,7 @@ class Game:
             elif idx == 3:
                 self.go_shadow()
             elif idx == 4:
-                pass
+                self.go_ask()
             else:
                 await black
                 print('ERROR, unknown action')
@@ -137,6 +138,9 @@ class Game:
 
     def go_shadow(self):
         self.activity = Shadowing(self)
+
+    def go_ask(self):
+        self.activity = AskMissile(self)
 
     def return_to_island(self):
         self.activity = self.island
@@ -186,7 +190,7 @@ class Game:
             self.return_to_island()
         clock.coro.run(coro())
 
-    def abort_activity(self, return_food=True, deselect=False):
+    def abort_activity(self, return_food=True, deselect=False, on_done=None):
         if return_food:
             self.info.food += 1
         self.activity = None
@@ -215,6 +219,8 @@ class Game:
                 *self.island_layers,
                 self.info_node,
             ]
+            if on_done:
+                on_done()
         clock.coro.run(coro())
         if deselect:
             self.island.deselect()

@@ -161,14 +161,22 @@ class Info:
         clock.coro.run(animit())
 
     @property
-    def message_assembled(self):
-        for i, want in zip(self.display, 'HELP'):
+    def message(self):
+        msg = ''
+        for i in self.display:
             if i is None:
-                return False
-            code1, code2, label = self.things[i].split(':')
-            if label.upper() != want:
-                return False
-        return True
+                label = ''
+            else:
+                code1, code2, label = self.things[i].split(':')
+            if len(label) == 1:
+                msg += label.upper()
+            elif msg and not msg.endswith(' '):
+                msg += ' '
+        return msg.strip()
+
+    @property
+    def message_assembled(self):
+        return self.message == 'HELP'
 
 @dataclass
 class InfoNode(ChainNode):

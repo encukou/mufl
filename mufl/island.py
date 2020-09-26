@@ -300,7 +300,6 @@ class Island:
         space_label = self.space_instruction_objs[1]
         things = tuple((info.things[i], p) for p, i in enumerate(info.display) if i != None)
         if things:
-            print(things)
             if self.last_message == things:
                 return
             while self.message_sprites:
@@ -379,7 +378,6 @@ class Island:
 
                 duration = 8
                 async for t in clock.coro.frames(seconds=duration):
-                    print(t)
                     t /= duration
                     anit = t * t
                     camera.pos = scene.width/2, scene.height/2 - anit * scene.height*2
@@ -433,7 +431,7 @@ class Island:
             finally:
                 scene.chain = chain
                 camera.pos = prev_pos
-                del scene.layers[1]
-                del scene.layers[2]
+                scene.layers.pop(1, None)
+                scene.layers.pop(2, None)
                 self.input_frozen = False
         clock.coro.run(anim())
