@@ -21,7 +21,7 @@ game.info.add_thing('LDL0:OON00O7O00KOM0000000:o')
 game.info.display[:] = 6, 7, 5, 1
 game.info.food = game.info.magic = game.info.cube = 2
 game.island.reset()
-game.island.on_key_down(keys.KP5)
+game.island.on_key_down(keys.KP3)
 game.island.on_key_down(keys.SPACE)
 
 def coalesce_key(key):

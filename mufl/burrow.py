@@ -54,10 +54,12 @@ class Burrowing:
         self.game = game
 
         self.bg_layer = game.scene.layers[0]
-        self.tile_layer = self.key_layer1 = game.scene.layers[1]
-        self.deck_layer = self.key_layer2 = self.worm_layer = game.scene.layers[2]
-        self.turncard_layer = self.hypno_layer = game.scene.layers[3]
+        self.tile_layer = game.scene.layers[1]
+        self.deck_layer = self.worm_layer = self.key_layer1 = game.scene.layers[2]
+        self.turncard_layer = self.key_layer2 = self.hypno_layer = game.scene.layers[3]
         self.selcard_layer = game.scene.layers[4]
+
+        self.bg_layer.add_sprite('burrow', anchor_x=0, anchor_y=0)
 
         cards = [Card(c) for c in ['card_foot'] * 24 + ['card_left'] * 20 + ['card_right'] * 20]
         shuffle(cards)
@@ -86,7 +88,11 @@ class Burrowing:
         self.thing = {}
         for x in range(4):
             for y in range(5):
-                s = self.tile_sprites[x, y] = self.tile_layer.add_sprite('block_00000', pos=tile_pos(x, y))
+                s = self.tile_sprites[x, y] = self.tile_layer.add_sprite(
+                    'block_00000',
+                    pos=tile_pos(x, y),
+                    color=(.607, .592, .235),
+                )
                 t = self.thing[x, y] = ThingTile()
                 t.update_sprite(s)
 
@@ -387,7 +393,20 @@ class Burrowing:
 
         self.game.info.add_thing(encode_thing(self.thing))
 
-        await clock.coro.sleep(3)
+        m_layer = self.game.set_molten_chain()
+        for s in self.tile_sprites.values():
+            s.color = 0, 0, 0, 1
+        s = m_layer.add_sprite(
+            'molten', anchor_y=0, anchor_x=0,
+        )
+        s = m_layer.add_sprite(
+            'molten', anchor_y=0, anchor_x=0,
+            pos=(0, self.game.scene.height-40),
+        )
+        h = 62 * 20
+        s.scale_x = (self.game.scene.width + 2) / 64
+        s.scale_y = h / 64
+        await animate(s, y=self.game.scene.height-h, duration=4)
 
         self.game.finish_activity(speedup=3, extra_delay=0.1)
 

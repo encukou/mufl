@@ -76,6 +76,18 @@ class Game:
         ]
         return fill
 
+    def set_molten_chain(self):
+        self.scene.layers.pop(40, None)
+        self.scene.chain = [
+            self.action_layers,
+            chain.Mask(
+                paint=[chain.Fill((0.607, 0.592, 0.235)), chain.Layers([40])],
+                mask=chain.Layers([1]),
+            ),
+            self.info_node,
+        ]
+        return self.scene.layers[40]
+
     def go_do(self, idx):
         self.info.food -= 1
         if idx == 4 and self.info.message_assembled:
@@ -143,6 +155,7 @@ class Game:
         self.activity = AskMissile(self)
 
     def return_to_island(self):
+        self.scene.layers.pop(40, None)
         self.activity = self.island
         self.scene.chain = [
             *self.island_layers,

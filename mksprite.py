@@ -34,8 +34,8 @@ mksprite(4, 1, 1, 1, 'magic_particle')
 mksprite(7, 1, 1, 1, 'flame')
 
 mksprite(5, 1, 2, 2, 'hypno')
-
-mksprite(15, 1, 1, 1, 'logo')
+mksprite(12, 1, 1, 1, 'logo')
+mksprite(15, 1, 1, 1, 'molten')
 
 mksprite(0, 1.5, 0.5, 0.5, 'arrow')
 mksprite(0.5, 1.5, 0.5, 0.5, 'arrow_guide')
