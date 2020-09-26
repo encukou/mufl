@@ -20,9 +20,12 @@ class Shadowing:
         self.game = game
         self.starting_display = list(self.game.info.display)
 
-        self.ui_layer = game.scene.layers[0]
-        self.menu_layer = self.display_layer = game.scene.layers[1]
-        self.item_layer = self.display_layer = game.scene.layers[1]
+        self.backdrop_layer = game.scene.layers[0]
+        self.ui_layer = game.scene.layers[1]
+        self.menu_layer = self.display_layer = game.scene.layers[2]
+        self.item_layer = self.display_layer = game.scene.layers[3]
+
+        self.backdrop_layer.add_sprite('ledge', anchor_x=0, anchor_y=0)
 
         self.cursor_sprite = self.ui_layer.add_sprite('sel_cursor', pos=(self.cursor_pos(0)))
 

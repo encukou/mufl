@@ -22,7 +22,15 @@ class Game:
         self.action_layers = chain.LayerRange(stop=5)
         self.fade_layers = chain.Layers([30])
         self.info_layers = chain.Layers([31, 32])
-        self.island_layers = chain.LayerRange(start=6, stop=10)
+        self.island_layers = [
+            chain.Layers([6]),
+            chain.Mask(
+                paint=chain.Fill((0, 0, .2, .5)),
+                mask=chain.Layers([7]),
+                function='inside',
+            ),
+            chain.LayerRange(start=8, stop=11),
+        ]
         self.info_node = InfoNode(self.info_layers)
 
         self.island = None
@@ -55,7 +63,7 @@ class Game:
             self.scene.layers.pop(i, None)
         async def coro():
             self.scene.chain = [
-                self.island_layers,
+                *self.island_layers,
                 self.fade_layers,
                 self.info_node,
             ]
@@ -109,7 +117,7 @@ class Game:
     def return_to_island(self):
         self.activity = self.island
         self.scene.chain = [
-            self.island_layers,
+            *self.island_layers,
             self.info_node,
         ]
         self.island.reset()
@@ -143,7 +151,7 @@ class Game:
                 await clock.coro.sleep(1)
                 await animate(self.fade_circ, scale=0, duration=self.fade_circ.scale, tween='accelerate')
             self.scene.chain = [
-                self.island_layers,
+                *self.island_layers,
                 self.fade_layers,
                 self.info_node,
             ]
@@ -171,7 +179,7 @@ class Game:
             for i in range(5):
                 self.scene.layers.pop(i, None)
             self.scene.chain = [
-                self.island_layers,
+                *self.island_layers,
                 self.fade_layers,
                 self.info_node,
             ]
@@ -180,7 +188,7 @@ class Game:
             await black
             await animate(self.fade_rect, color=(0, 0, 0, 0), duration=0.25, tween='accelerate')
             self.scene.chain = [
-                self.island_layers,
+                *self.island_layers,
                 self.info_node,
             ]
         clock.coro.run(coro())

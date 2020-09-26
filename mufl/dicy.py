@@ -15,7 +15,7 @@ from numpy.linalg import norm as linalg_norm
 from pyrr import Quaternion, Vector3
 
 from .info import COLORS as BONUS_COLORS
-from .common import add_key_icon, add_space_instruction, KEY_NUMBERS
+from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, CHEAT
 
 # Parts pilfered from wasabi2d/primitives/sprites.py
 
@@ -255,14 +255,15 @@ class Die:
                 self.locked = True
                 self.pos[2] = self.r
                 return
-        if keyboard.keyboard.left:
-            self.rotation *= Quaternion.from_y_rotation(-dt)
-        if keyboard.keyboard.right:
-            self.rotation *= Quaternion.from_y_rotation(dt)
-        if keyboard.keyboard.up:
-            self.rotation *= Quaternion.from_x_rotation(dt)
-        if keyboard.keyboard.down:
-            self.rotation *= Quaternion.from_x_rotation(-dt)
+        if CHEAT:
+            if keyboard.keyboard.left:
+                self.rotation *= Quaternion.from_y_rotation(-dt)
+            if keyboard.keyboard.right:
+                self.rotation *= Quaternion.from_y_rotation(dt)
+            if keyboard.keyboard.up:
+                self.rotation *= Quaternion.from_x_rotation(dt)
+            if keyboard.keyboard.down:
+                self.rotation *= Quaternion.from_x_rotation(-dt)
         self.pos += self.speed
         r = self.r
         self.bounce(self.pos[0], (1, 0, 0))

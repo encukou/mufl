@@ -9,6 +9,7 @@ from wasabi2d import clock
 from .info import COLORS as BONUS_COLORS
 from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, change_sprite_image, THAT_BLUE
 from .fixes import animate
+from .thing import get_thing_sprite_info
 
 def add_rect_with_topleft_anchor(layer, x, y, w, h, **kwargs):
     return layer.add_rect(w, h, pos=(x+w/2, y+h/2), **kwargs)
@@ -43,10 +44,11 @@ class Island:
         self.actions = load_actions()
         self.game = game
         self.backdrop_layer = self.game.scene.layers[6]
-        self.effect_layer = self.game.scene.layers[7]
-        self.bg_layer = self.game.scene.layers[8]
-        self.main_layer = self.game.scene.layers[9]
-        self.top_layer = self.game.scene.layers[10]
+        self.shade_layer = self.game.scene.layers[7]
+        self.effect_layer = self.thing_layer = self.game.scene.layers[8]
+        self.bg_layer = self.game.scene.layers[9]
+        self.main_layer = self.textbg_layer = self.game.scene.layers[10]
+        self.top_layer = self.text_layer = self.game.scene.layers[11]
 
         self.backdrop_layer.add_sprite('island', anchor_x=0, anchor_y=0)
 
@@ -83,11 +85,11 @@ class Island:
 
         self.space_instruction_objs = add_space_instruction(self.bg_layer, 'Press Space to Start')
 
-        self.bg_rect = add_rect_with_topleft_anchor(self.bg_layer, 360, ys+16, 400, ysep*4+64+32, color=(1, 1, 1, 0))
-        self.caption_label = self.main_layer.add_label('', font='kufam_medium', pos=(560, ys+64), color=(THAT_BLUE), align='center', fontsize=22)
+        self.bg_rect = add_rect_with_topleft_anchor(self.textbg_layer, 360, ys+16, 400, ysep*4+64+32, color=(1, 1, 1, 0))
+        self.caption_label = self.text_layer.add_label('', font='kufam_medium', pos=(560, ys+64), color=(THAT_BLUE), align='center', fontsize=22)
         self.description_labels = []
         for i in range(max(len(a.description) for a in self.actions)):
-            lbl = self.main_layer.add_label('', font='kufam_medium', pos=(560, ys+64+i*30+64), color=(THAT_BLUE), align='center', fontsize=15)
+            lbl = self.text_layer.add_label('', font='kufam_medium', pos=(560, ys+64+i*30+64), color=(THAT_BLUE), align='center', fontsize=15)
             self.description_labels.append(lbl)
 
         self.affordable = [False] * 5
@@ -105,9 +107,6 @@ class Island:
             pos=(490, 576),
             size=8,
         )
-        print(self.emitter)
-
-        self.reset()
 
         fire_pos = 484, 570
         self.flames = []
@@ -132,6 +131,17 @@ class Island:
         )
         self.hypno_emitter = em
 
+        self.shadow_sprite = self.shade_layer.add_sprite(
+            'island_shadow',
+            pos=(self.game.scene.width//2, self.game.scene.height//2),
+            color=(1, 1, 1, 0),
+        )
+
+        self.last_message = ()
+        self.message_sprites = []
+
+        self.reset()
+
     async def anim_flame(self, s, i, x, y):
         while True:
             d = uniform(0.5, 1.5)
@@ -149,6 +159,7 @@ class Island:
     def reset(self):
         self.on_wealth_changed()
         self.update_help()
+        self.reset_display()
 
     def on_key_down(self, key):
         if key == key.ESCAPE:
@@ -222,7 +233,7 @@ class Island:
             for label in self.description_labels:
                 animate(label, color=color, duration=0.1)
             for o in self.space_instruction_objs:
-                animate(o, color=(*o.color[:3], 0), duration=0.1)
+                o.color=(*o.color[:3], 0)
         else:
             num = self.last_selected
             if self.affordable[self.last_selected]:
@@ -239,14 +250,14 @@ class Island:
 
             if self.affordable[self.last_selected]:
                 for o in self.space_instruction_objs:
-                    animate(o, color=(*o.color[:3], 1), duration=0.1)
+                    o.color=(*o.color[:3], 1)
 
                 self.caption_labels[num].color = THAT_BLUE
                 change_sprite_image(self.bg_sprites[num], 'selected_bg')
                 self.bg_sprites[num].color = 1, 1, 1, 1
             else:
                 for o in self.space_instruction_objs:
-                    animate(o, color=(*o.color[:3], 0), duration=0.1)
+                    o.color=(*o.color[:3], 0)
 
 
     def on_wealth_changed(self):
@@ -272,3 +283,46 @@ class Island:
 
         if dirty:
             self.reset()
+
+    def reset_display(self):
+        info = self.game.info
+        space_label = self.space_instruction_objs[1]
+        things = tuple((info.things[i], p) for p, i in enumerate(info.display) if i != None)
+        if things:
+            print(things)
+            if self.last_message == things:
+                return
+            while self.message_sprites:
+                self.message_sprites.pop().delete()
+            self.shadow_sprite.color = 1, 1, 1, 1
+            for thing, p in things:
+                sprites_now = []
+                max_x = max_y = 0
+                for x, y, image, angle in get_thing_sprite_info(thing):
+                    s = self.shade_layer.add_sprite(
+                        image, angle=angle,
+                        pos=(390 + (p*5 + x) * 16, 215 + y * 16),
+                        scale=1/4+1/64,
+                        color=(1, 1, 1, 1),
+                    )
+                    sprites_now.append(s)
+                    if x > max_x: max_x = x
+                    if y > max_y: max_y = y
+                    s = self.thing_layer.add_sprite(
+                        image, angle=angle,
+                        pos=(450 + (p*5 + x) * 5, 445 + y * 5),
+                        scale=1/16+2/64,
+                        color=(0, 0, 0, 1),
+                    )
+                    sprites_now.append(s)
+                self.message_sprites.extend(sprites_now)
+                for s in sprites_now:
+                    s.x += (3-max_x)/2 * 64 * s.scale_x
+                    s.y += (4-max_y) * 64 * s.scale_x
+            space_label.color = 1, 1, 1, space_label.color[-1]
+        else:
+            while self.message_sprites:
+                self.message_sprites.pop().delete()
+            self.shadow_sprite.color = 1, 1, 1, 0
+            space_label.color = (*THAT_BLUE, space_label.color[-1])
+        self.last_message = things
