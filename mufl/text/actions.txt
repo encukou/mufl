@@ -29,6 +29,7 @@ party magician learns it way, way early.
 Iactā!
 
 
+You need a box-like object to cast.
 Casting 1 die consumes 1 Magic
 and may yield Magic and/or Food.
 

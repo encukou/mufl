@@ -65,7 +65,7 @@ class Info:
         self.reset()
 
     def reset(self):
-        self.food = 1
+        self.food = 0
         self.magic = 0
         self.cube = 0
         self.thing = 0
@@ -208,13 +208,14 @@ class Info:
         )
         label = self.temp_layer.add_label(
             message,
+            font='kufam_medium',
             pos=(self.scene.width//2, self.scene.height//2),
             align='center',
             color=(*THAT_BLUE, 0),
             fontsize=30,
         )
         async def animit():
-            animate(rect, color=(1, 1, 1, 0.9), duration=0.2)
+            animate(rect, color=(1, 1, 1, 0.95), duration=0.2)
             await animate(label, color=(*THAT_BLUE, 1), duration=0.2)
             await clock.coro.sleep(0.5 + len(message)/15)
             animate(rect, color=(1, 1, 1, 0))

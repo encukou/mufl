@@ -11,6 +11,7 @@ from .island import Island
 from .burrow import Burrowing
 from .shadow import Shadowing, CastAway
 from .missile import AskMissile
+from .intro import Intro
 
 
 class Game:
@@ -62,7 +63,11 @@ class Game:
         self.storage.load()
         self.info.load(self.storage)
 
-        self.return_to_island()
+        print(self.info.food)
+        if self.info.food > 0:
+            self.return_to_island()
+        else:
+            self.go_do(None, from_island=False)
 
     def set_missile_chain(self):
         fill = chain.Fill((0, 0, 0, 1))
@@ -94,25 +99,29 @@ class Game:
         ]
         return self.scene.layers[40]
 
-    def go_do(self, idx):
-        self.info.food -= 1
+    def go_do(self, idx, from_island=True):
         if idx == 4 and self.info.message_assembled:
             self.island.fire_missile()
             return
+        if idx is not None:
+            self.info.food -= 1
         self.activity = None
         for i in range(5):
             self.scene.layers.pop(i, None)
         async def coro():
-            self.scene.chain = [
-                *self.island_layers,
-                self.fade_layers,
-                self.info_node,
-            ]
+            if from_island:
+                self.scene.chain = [
+                    *self.island_layers,
+                    self.fade_layers,
+                    self.info_node,
+                ]
             self.fade_circ.color = (0, 0, 0, 0)
             self.fade_rect.color = (0, 0, 0, 0)
             await animate(self.fade_rect, color=(0, 0, 0, 1), duration=0.25, tween='accelerate')
             black = clock.coro.sleep(0.25)
-            if idx == 0:
+            if idx == None:
+                self.go_intro()
+            elif idx == 0:
                 self.go_fish()
             elif idx == 1:
                 self.go_dice()
@@ -165,6 +174,9 @@ class Game:
 
     def go_castaway(self):
         self.activity = CastAway(self)
+
+    def go_intro(self):
+        self.activity = Intro(self)
 
     def save(self):
         self.info.save(self.storage)
