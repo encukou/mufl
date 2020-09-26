@@ -24,11 +24,11 @@ class Card:
 
 
 def deck_pos(i):
-    return 280 + 80*i, 128-24
+    return 280 + 80*i, 128-24-16
 
 def selected_pos(i):
     PER_ROW = 38
-    return 32 + 20 + 20 * ((i%PER_ROW)-1), 160 + 32 * (i//PER_ROW)
+    return 32 + 20 + 20 * ((i%PER_ROW)-1), 160 + 32 * (i//PER_ROW) - 8
 
 def tile_pos(x, y):
     return 304 + x * 62, 315 + y * 62
@@ -361,6 +361,9 @@ class Burrowing:
                 main_coro = coro
         await main_coro
 
+        for em in self.hypno_emitters:
+            em.rate = 0
+
         message = get_thing_mesage(classify_thing(self.thing))
         message1, sep, message2 = message.partition('\n')
         label = self.selcard_layer.add_label(
@@ -381,7 +384,6 @@ class Burrowing:
         animate(label, color=(*THAT_BLUE, 1))
 
         self.game.info.add_thing(encode_thing(self.thing))
-        self.game.info.thing += 1
 
         await clock.coro.sleep(3)
 
@@ -389,7 +391,7 @@ class Burrowing:
 
     async def _burrow_one(self, sprite, slp):
         is_head = not slp
-        D = 1/20
+        D = 1/3
         prev_pos = (0, -1)
         prev_d = (0, 1)
         if slp:

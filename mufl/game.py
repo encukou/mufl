@@ -7,6 +7,7 @@ from .dicy import DiceThrowing
 from .info import Info, InfoNode
 from .island import Island
 from .burrow import Burrowing
+from .shadow import Shadowing
 
 
 class Game:
@@ -64,6 +65,8 @@ class Game:
                 self.go_dice()
             elif idx == 2:
                 self.go_burrow()
+            elif idx == 3:
+                self.go_shadow()
             else:
                 await black
                 print('ERROR, unknown action')
@@ -95,6 +98,9 @@ class Game:
 
     def go_burrow(self):
         self.activity = Burrowing(self)
+
+    def go_shadow(self):
+        self.activity = Shadowing(self)
 
     def return_to_island(self):
         self.activity = self.island
@@ -144,8 +150,9 @@ class Game:
             self.return_to_island()
         clock.coro.run(coro())
 
-    def abort_activity(self):
-        self.info.food += 1
+    def abort_activity(self, return_food=True, deselect=False):
+        if return_food:
+            self.info.food += 1
         self.activity = None
         async def coro():
             self.scene.chain = [
@@ -173,6 +180,8 @@ class Game:
                 self.info_node,
             ]
         clock.coro.run(coro())
+        if deselect:
+            self.island.deselect()
 
     def on_key_down(self, key):
         try:

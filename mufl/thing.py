@@ -36,34 +36,29 @@ class ThingTile:
         self.filled = False
         self.corners = [False] * 4
 
-    def update_sprite(self, sprite):
+    def get_sprite_info(self):
         fc = '01'[self.filled]
         num_corners = sum(self.corners)
         if num_corners == 0:
-            image = f'block_{fc}0000'
-            rotation = 0
+            return f'block_{fc}0000', 0
         elif num_corners == 1:
-            image = f'block_{fc}1000'
-            rotation = tau/4 * self.corners.index(True)
+            return f'block_{fc}1000', tau/4 * self.corners.index(True)
         elif num_corners == 2:
             if self.corners == [True, False, True, False]:
-                image = f'block_{fc}1010'
-                rotation = 0
+                return f'block_{fc}1010', 0
             elif self.corners == [False, True, False, True]:
-                image = f'block_{fc}1010'
-                rotation = tau/4
+                return f'block_{fc}1010', tau/4
             elif self.corners == [True, False, False, True]:
-                image = f'block_{fc}1100'
-                rotation = tau*3/4
+                return f'block_{fc}1100', tau*3/4
             else:
-                image = f'block_{fc}1100'
-                rotation = tau/4 * self.corners.index(True)
+                return f'block_{fc}1100', tau/4 * self.corners.index(True)
         elif num_corners == 3:
-            image = f'block_{fc}1110'
-            rotation = tau/4 * (self.corners.index(False) + 2)
+            return f'block_{fc}1110', tau/4 * (self.corners.index(False) + 2)
         else:
-            image = f'block_{fc}1111'
-            rotation = 0
+            return f'block_{fc}1111', 0
+
+    def update_sprite(self, sprite):
+        image, rotation = self.get_sprite_info()
         change_sprite_image(sprite, image)
         sprite.angle = rotation
 
@@ -82,6 +77,16 @@ class ThingTile:
             num |= corner
         return chr(ord('0') + num)
 
+    @classmethod
+    def from_code(cls, code):
+        self = cls()
+        num = ord(code) - ord('0')
+        for i, corner in reversed(list(enumerate(self.corners))):
+            self.corners[i] = bool(num & 1)
+            num >>= 1
+        self.filled = bool(num & 1)
+        return self
+
 def encode_thing(thing):
     thingset = {pos for pos, tile in thing.items() if tile.filled}
     letter = encode_letter(thingset)
@@ -92,6 +97,15 @@ def encode_thing(thing):
 def classify_thing(thing):
     shape = frozenset(pos for (pos, tile) in thing.items() if tile.filled)
     return encode_letter(shape)
+
+
+def get_thing_sprite_info(thing_string):
+    code, tileinfo, comment = thing_string.split(':')
+    for i, c in enumerate(tileinfo):
+        if c != '0':
+            x = i // 5
+            y = i % 5
+            yield (x, y, *ThingTile.from_code(c).get_sprite_info())
 
 def get_thing_mesage(encoded):
     sym = SYMBOLS.get(encoded)
@@ -113,7 +127,7 @@ def get_thing_mesage(encoded):
             *usefuls,
             "A waste of metal.",
             "A waste of material.",
-            "Frankly, a waste of metal.",
+            "Frankly, this is a waste of metal.",
         )
         return cls(
             f"That doesn't remind you of anything. {useful_waste}",

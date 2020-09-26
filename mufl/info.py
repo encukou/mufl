@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from wasabi2d import animate, clock
 from wasabi2d.chain import ChainNode
 
-from .common import THAT_BLUE
+from .common import THAT_BLUE, CHEAT
 from .fixes import animate
 
 
@@ -68,6 +68,7 @@ class Info:
 
         self.boxfish = []
         self.things = []
+        self.display = [None] * 4
 
         self.known_actions = [False] * 5
 
@@ -125,7 +126,10 @@ class Info:
         return False
 
     def add_thing(self, thing):
+        if CHEAT:
+            print(thing)
         self.things.append(thing)
+        self.thing += 1
 
     def display_message(self, message):
         print(message)
@@ -144,7 +148,7 @@ class Info:
         async def animit():
             animate(rect, color=(1, 1, 1, 0.9), duration=0.2)
             await animate(label, color=(*THAT_BLUE, 1), duration=0.2)
-            await clock.coro.sleep(0.5 + len(message)/10)
+            await clock.coro.sleep(0.5 + len(message)/15)
             animate(rect, color=(1, 1, 1, 0))
             await animate(label, color=(*THAT_BLUE, 0))
             await clock.coro.sleep(1)

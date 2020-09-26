@@ -95,8 +95,7 @@ class Island:
         if key == key.ESCAPE:
             if self.last_selected is None:
                 exit()
-            self.last_selected = None
-            self.update_help()
+            self.deselect()
             return True
         if key == key.DOWN:
             self.move_cursor(1)
@@ -112,6 +111,10 @@ class Island:
             else:
                 self.last_selected = 0
                 self.update_help()
+
+    def deselect(self):
+        self.last_selected = None
+        self.update_help()
 
     def move_cursor(self, direction=1):
         if self.last_selected is None:
