@@ -1,6 +1,8 @@
 from math import hypot
+import os
 
 from wasabi2d import chain, animate, Scene, clock, event
+from wasabi2d.storage import Storage
 
 from .fishy import Fishing
 from .dicy import DiceThrowing
@@ -55,6 +57,10 @@ class Game:
             self.scene.width * 3, self.scene.height * 3,
             color=(0, 0, 0, 0),
         )
+
+        self.storage = Storage('mufl_castaway.json')
+        self.storage.load()
+        self.info.load(self.storage)
 
         self.return_to_island()
 
@@ -160,7 +166,20 @@ class Game:
     def go_castaway(self):
         self.activity = CastAway(self)
 
+    def save(self):
+        self.info.save(self.storage)
+
+        # TODO: report bug!  -- self.storage._ensure_save_path()
+        storage_path = self.storage.STORAGE_DIR
+        try:
+            os.makedirs(storage_path)
+        except (FileExistsError, IsADirectoryError):
+            pass
+
+        self.storage.save()
+
     def return_to_island(self):
+        self.save()
         self.scene.layers.pop(40, None)
         self.activity = self.island
         self.scene.chain = [
@@ -171,6 +190,7 @@ class Game:
 
     def finish_activity(self, speedup=1, superfast=False, extra_delay=4, **bonus):
         self.activity = None
+        self.save()
         async def coro():
             if speedup == 1:
                 tween = 'accelerate'
@@ -213,6 +233,7 @@ class Game:
         if return_food:
             self.info.food += 1
         self.activity = None
+        self.save()
         async def coro():
             self.scene.chain = [
                 self.action_layers,

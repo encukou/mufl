@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from traceback import print_exc
 
-from wasabi2d import animate, clock
+from wasabi2d import animate, clock, storage
 from wasabi2d.chain import ChainNode
 
 from .common import THAT_BLUE, CHEAT
@@ -61,6 +62,9 @@ class Info:
             self.sprites[name] = self.perm_layer.add_sprite(name, scale=1/2, pos=(8, 8+16*i), color=(*color[:3], 0))
             self.labels[name] = self.perm_layer.add_label('0', font='kufam_bold', pos=(18, 14+16*i), color=(0.9, 1, 1, 0), fontsize=15)
 
+        self.reset()
+
+    def reset(self):
         self.food = 1
         self.magic = 0
         self.cube = 0
@@ -71,11 +75,69 @@ class Info:
         self.display = [None] * 4
 
         self.known_actions = [False] * 5
+        if self.game.island:
+            self.game.island.reset()
 
     food = VisualizedProperty()
     magic = VisualizedProperty()
     cube = VisualizedProperty()
     thing = VisualizedProperty()
+
+    def load(self, storage):
+        try:
+            self._load(storage)
+        except Exception as e:
+            print('Loading failed!')
+            print_exc()
+            print('Storage was:')
+            print(storage)
+            print('Clearing storage')
+            storage.clear()
+            self.reset()
+        finally:
+            if self.game.island:
+                self.game.island.reset()
+
+    def _load(self, storage):
+        for attr_name in 'food', 'magic':
+            if attr_name in storage:
+                setattr(self, attr_name, int(storage[attr_name]))
+        if 'boxfish' in storage:
+            self.cube = 0
+            for r, g, b in storage['boxfish']:
+                self.cube += 1
+                self.boxfish.append((float(r), float(g), float(b)))
+        if 'things' in storage:
+            self.thing = 0
+            self.things.clear()
+            for i, thing in zip(range(10), storage['things']):
+                if thing is None:
+                    self.things.append(None)
+                else:
+                    thing = str(thing)
+                    assert thing.count('-') == 2
+                    self.things.append(thing)
+                    self.thing += 1
+        if 'display' in storage:
+            self.display[:] = [None] * 4
+            for i, d in zip(range(4), storage['display']):
+                if d is not None and 0 <= d < len(self.things) and self.things[d]:
+                    self.display[i] = d
+        if 'known_actions' in storage:
+            for i, (o, n) in enumerate(zip(self.known_actions, storage['known_actions'])):
+                self.known_actions[i] = bool(n)
+        if self.game.island:
+            self.game.island.reset()
+
+    def save(self, storage):
+        storage.update({
+            'food': self.food,
+            'magic': self.magic,
+            'boxfish': tuple(self.boxfish),
+            'things': tuple(self.things),
+            'display': tuple(self.display),
+            'known_actions': tuple(self.known_actions),
+        })
 
     def add_boxfish(self, color):
         self.boxfish.append(color)
@@ -173,7 +235,7 @@ class Info:
             if i is None:
                 label = ''
             else:
-                code1, code2, label = self.things[i].split(':')
+                code1, code2, label = self.things[i].split('-')
             if len(label) == 1:
                 msg += label.upper()
             elif msg and not msg.endswith(' '):

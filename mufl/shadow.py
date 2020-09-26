@@ -56,11 +56,11 @@ def make_palette(self):
         self.assign_key(i, str((i + 1) % 10))
 
     for i, item in self.things.items():
-        code, tileinfo, label = item.split(':')
+        code, tileinfo, label = item.split('-')
         if len(label) == 1 and label in string.ascii_uppercase:
             self.assign_key(i, label)
     for i, item in self.things.items():
-        code, tileinfo, label = item.split(':')
+        code, tileinfo, label = item.split('-')
         if len(label) == 1 and label in string.ascii_lowercase:
             self.assign_key(i, label.upper())
 

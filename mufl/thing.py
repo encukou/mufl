@@ -91,7 +91,7 @@ def encode_thing(thing):
     thingset = {pos for pos, tile in thing.items() if tile.filled}
     letter = encode_letter(thingset)
     tileset = ''.join(thing[x, y].encode() for x in range(4) for y in range(5))
-    return f'{letter}:{tileset}:{SYMBOLS.get(letter, "")}'
+    return f'{letter}-{tileset}-{SYMBOLS.get(letter, "")}'
 
 
 def classify_thing(thing):
@@ -100,7 +100,7 @@ def classify_thing(thing):
 
 
 def get_thing_sprite_info(thing_string):
-    code, tileinfo, comment = thing_string.split(':')
+    code, tileinfo, comment = thing_string.split('-')
     for i, c in enumerate(tileinfo):
         if c != '0':
             x = i // 5

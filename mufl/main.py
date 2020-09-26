@@ -5,25 +5,15 @@ from .common import CHEAT
 
 game = Game()
 
-#game.island.last_selected = 3
-game.info.food = game.info.magic = game.info.cube = 1
-#game.info.cube = 6
-#game.info.magic = 5
-game.info.add_thing('@O00:N4000KOOOO0000000000:l')
-game.info.add_thing('O111:OOOON0001O0000O0000I:L')
-game.info.add_thing('@000:L0000000000000000000:.')
-game.info.add_thing('L4<0:OON0003O000CM0000000:hook')
-game.info.add_thing('H888:ON0001O0000O0000O000:')
-game.info.add_thing('ODL0:OOOOLO?O00KOM0000000:P')
-game.info.add_thing('L8L0:OOL003O<00COL0000000:H')
-game.info.add_thing('OE@@:OOOONO9I9IO0000I0000:e')
-game.info.add_thing('LDL0:OON00O7O00KOM0000000:o')
-game.info.add_thing('LDL0:OON00O7O00KOM0000000:o')
-game.info.display[:] = 6, 7, 5, 1
-game.info.food = game.info.magic = game.info.cube = 5
-game.island.reset()
-game.island.on_key_down(keys.KP1)
-game.island.on_key_down(keys.SPACE)
+
+#game.info.load({'food': 4, 'magic': 5, 'boxfish': (), 'things': ('@O00-N4000KOOOO0000000000-l', 'O111-OOOON0001O0000O0000I-L', '@000-L0000000000000000000-.', 'L4<0-OON0003O000CM0000000-hook', 'H888-ON0001O0000O0000O000-', 'ODL0-OOOOLO?O00KOM0000000-P', 'L8L0-OOL003O<00COL0000000-H', 'OE@@-OOOONO9I9IO0000I0000-e', 'LDL0-OON00O7O00KOM0000000-o', 'LDL0-OON00O7O00KOM0000000-o'), 'display': (6, 7, 5, 1), 'known_actions': (True, True, True, True, False)})
+s = {}
+game.info.save(s)
+print(s)
+game.return_to_island()
+
+#game.island.on_key_down(keys.KP1)
+#game.island.on_key_down(keys.SPACE)
 
 def coalesce_key(key):
     if key in (keys.RETURN, keys.KP_ENTER):
