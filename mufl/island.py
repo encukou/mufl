@@ -1,11 +1,14 @@
 import pkgutil
 from dataclasses import dataclass
 from itertools import zip_longest
+from math import tau
+from random import uniform
 
-from wasabi2d import animate
+from wasabi2d import clock
 
 from .info import COLORS as BONUS_COLORS
 from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, change_sprite_image, THAT_BLUE
+from .fixes import animate
 
 def add_rect_with_topleft_anchor(layer, x, y, w, h, **kwargs):
     return layer.add_rect(w, h, pos=(x+w/2, y+h/2), **kwargs)
@@ -39,9 +42,13 @@ class Island:
     def __init__(self, game):
         self.actions = load_actions()
         self.game = game
-        self.bg_layer = self.game.scene.layers[6]
-        self.main_layer = self.game.scene.layers[7]
-        self.top_layer = self.game.scene.layers[8]
+        self.backdrop_layer = self.game.scene.layers[6]
+        self.effect_layer = self.game.scene.layers[7]
+        self.bg_layer = self.game.scene.layers[8]
+        self.main_layer = self.game.scene.layers[9]
+        self.top_layer = self.game.scene.layers[10]
+
+        self.backdrop_layer.add_sprite('island', anchor_x=0, anchor_y=0)
 
         self.last_selected = None
 
@@ -54,7 +61,7 @@ class Island:
         ysep = 110
         xpos = 192+6
         for i, action in enumerate(self.actions):
-            s = self.bg_layer.add_sprite('action_bg', pos=(64, ys+16+i*ysep), anchor_x=0, anchor_y=0)
+            s = self.bg_layer.add_sprite('action_bg', pos=(64, ys+16+i*ysep), color=(.5, .5, .5), anchor_x=0, anchor_y=0)
             self.bg_sprites.append(s)
             lbl = self.main_layer.add_label(action.caption, font='kufam_bold', pos=(xpos, ys+56+i*ysep), color=(1, 1, 1), align='center', fontsize=22)
             self.caption_labels.append(lbl)
@@ -85,7 +92,59 @@ class Island:
 
         self.affordable = [False] * 5
 
+        pg = self.bg_layer.add_particle_group(
+            texture='blur_circle',
+            gravity=1,
+        )
+        pg.add_color_stop(0, (1, 0, 0))
+        pg.add_color_stop(2, (1, 1, 0))
+        pg.add_color_stop(3, (0, 0, 0))
+        pg.add_color_stop(3.2, (.5, .5, .5, 0))
+        self.emitter = pg.add_emitter(
+            rate=10,
+            pos=(490, 576),
+            size=8,
+        )
+        print(self.emitter)
+
         self.reset()
+
+        fire_pos = 484, 570
+        self.flames = []
+        for i in range(4):
+            s = self.effect_layer.add_sprite('flame', pos=fire_pos, scale=1/3, anchor_y=48, color=(1, 0, 0, .4))
+            if i % 2:
+                s.scale_x = -1
+            self.flames.append(s)
+            clock.coro.run(self.anim_flame(s, i, *fire_pos))
+
+        pg = self.effect_layer.add_particle_group(
+            'blur_circle', grow=1.0, max_age=3.2, spin_drag=1.1, gravity=-4,
+        )
+        pg.add_color_stop(0, (1, 0, 0))
+        pg.add_color_stop(2, (1, 1, 0))
+        pg.add_color_stop(3, (.5, .5, .5))
+        pg.add_color_stop(3.2, (.5, .5, .5, 0))
+        self.hypno_emitters = []
+        em = pg.add_emitter(
+            rate=20, pos=fire_pos, pos_spread=(2, 2), vel=(2, -8),
+            vel_spread=(4, 0.1), size=1.2, size_spread=0.1, spin_spread=tau,
+        )
+        self.hypno_emitter = em
+
+    async def anim_flame(self, s, i, x, y):
+        while True:
+            d = uniform(0.5, 1.5)
+            sxs = sx = uniform(.2, .4)
+            if i % 2:
+                sxs = -sx
+            await animate(
+                s, duration=d,
+                scale_x=sxs, scale_y=uniform(.2, 1) * sx,
+                angle=uniform(-tau/8, tau/8),
+                pos=(x+uniform(-3, 3), y+uniform(-3, 3)),
+            )
+
 
     def reset(self):
         self.on_wealth_changed()
@@ -137,18 +196,21 @@ class Island:
             self.keyboard_icons, self.cost_icons,
             self.game.info.known_actions
         ):
-            objs1 = (*cost_icon, bg_sprite)
+            objs1 = (*cost_icon, )
             objs2 = (*kbd_icon,)
             if affordable:
                 label.color = (1, 1, 1, 1)
+                bg_sprite.color = .5, .5, .5, 1
                 for o in objs1: o.color = (*o.color[:3], 1)
                 for o in objs2: o.color = (*o.color[:3], 1)
             elif known:
                 label.color = (1, 1, 1, .5)
-                for o in objs1: o.color = (*o.color[:3], .5)
+                bg_sprite.color = .5, .5, .5, .9
+                for o in objs1: o.color = (*o.color[:3], .9)
                 for o in objs2: o.color = (*o.color[:3], 1)
             else:
                 label.color = (1, 1, 1, 0)
+                bg_sprite.color = .5, .5, .5, 0
                 for o in objs1: o.color = (*o.color[:3], 0)
                 for o in objs2: o.color = (*o.color[:3], 0)
             change_sprite_image(bg_sprite, 'action_bg')
@@ -168,7 +230,7 @@ class Island:
             else:
                 color = (.5, .5, .5, 1)
             action = self.actions[num]
-            animate(self.bg_rect, color=(1, 1, 1, 0.5), duration=0.1)
+            animate(self.bg_rect, color=(.9, .9, .93, 0.98), duration=0.1)
             self.caption_label.text = action.caption
             animate(self.caption_label, color=color, duration=0.1)
             for label, text in zip_longest(self.description_labels, action.description, fillvalue=''):
@@ -181,6 +243,7 @@ class Island:
 
                 self.caption_labels[num].color = THAT_BLUE
                 change_sprite_image(self.bg_sprites[num], 'selected_bg')
+                self.bg_sprites[num].color = 1, 1, 1, 1
             else:
                 for o in self.space_instruction_objs:
                     animate(o, color=(*o.color[:3], 0), duration=0.1)

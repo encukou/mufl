@@ -15,14 +15,18 @@ class Game:
         self.scene = Scene(title='Cast Away!', icon='logo', width=800, height=600)
         self.scene.background = 0.9, 0.9, 1.0
 
+        self.fade_layer = self.scene.layers[30]
+        self.info_layer1 = self.scene.layers[31]
+        self.info_layer2 = self.scene.layers[32]
+
         self.action_layers = chain.LayerRange(stop=5)
-        self.fade_layers = chain.Layers([10])
-        self.info_layers = chain.Layers([11, 12])
-        self.island_layers = chain.LayerRange(start=6, stop=9)
+        self.fade_layers = chain.Layers([30])
+        self.info_layers = chain.Layers([31, 32])
+        self.island_layers = chain.LayerRange(start=6, stop=10)
         self.info_node = InfoNode(self.info_layers)
 
         self.island = None
-        self.info = Info(self, self.scene.layers[11], self.scene.layers[12])
+        self.info = Info(self, self.info_layer1, self.info_layer2)
         self.island = Island(self)
 
         self.scene.chain = [
@@ -30,14 +34,14 @@ class Game:
             self.info_node,
         ]
 
-        self.scene.layers[11].set_effect('dropshadow', radius=3, offset=(0, 0), opacity=3)
+        self.info_layer1.set_effect('dropshadow', radius=3, offset=(0, 0), opacity=3)
 
-        self.fade_circ = self.scene.layers[10].add_sprite(
+        self.fade_circ = self.fade_layer.add_sprite(
             'blur_circle',
             scale=hypot(self.scene.width, self.scene.height)//2 / 50,
             pos=(self.scene.width//2, self.scene.height*0.55),
         )
-        self.fade_rect = self.scene.layers[10].add_rect(
+        self.fade_rect = self.fade_layer.add_rect(
             self.scene.width * 3, self.scene.height * 3,
             color=(0, 0, 0, 0),
         )
