@@ -5,7 +5,7 @@ from itertools import chain
 from wasabi2d import Group, keys, clock
 
 from .thing import get_thing_sprite_info
-from .common import add_key_icon, add_space_instruction
+from .common import add_key_icon, add_space_instruction, THAT_BLUE
 from .fixes import animate
 
 KEY_VALUES = {getattr(keys, k): k for k in string.ascii_uppercase}
@@ -15,73 +15,56 @@ for prefix in 'K_', 'KP_', 'F':
             KEY_VALUES[constant] = k
 
 
-class Shadowing:
-    def __init__(self, game):
-        self.game = game
-        self.starting_display = list(self.game.info.display)
+def make_palette(self):
+    game = self.game
+    self.backdrop_layer = game.scene.layers[0]
+    self.ui_layer = game.scene.layers[1]
+    self.menu_layer = game.scene.layers[2]
+    self.item_layer = self.display_layer = game.scene.layers[3]
 
-        self.backdrop_layer = game.scene.layers[0]
-        self.ui_layer = game.scene.layers[1]
-        self.menu_layer = self.display_layer = game.scene.layers[2]
-        self.item_layer = self.display_layer = game.scene.layers[3]
+    self.things = {i: v for i, v in enumerate(self.game.info.things) if v}
+    self.item_sprites = {}
+    self.menu_sprites = {}
+    self.item_bottoms = {}
+    self.item_rights = {}
+    self.menu_groups = {}
+    self.item_groups = {}
+    self.item_kbd_labels = {}
+    self.item_shortcuts = {}
+    self.assigned_shortcuts = {}
+    for i, item in self.things.items():
+        item_sprites = self.item_sprites[i] = {}
+        menu_sprites = self.menu_sprites[i] = {}
+        for x, y, image, angle in get_thing_sprite_info(item):
+            s = self.menu_layer.add_sprite(image, pos=(x * 16, y * 16), angle=angle, scale=1/4+1/64, color=(.5, .5, .5, 1))
+            menu_sprites[x, y] = s
+            s = self.item_layer.add_sprite(image, pos=(x * 16, y * 16), angle=angle, scale=1/4+1/64, color=(0, 0, 0, 1))
+            item_sprites[x, y] = s
+        maxx = max(xy[0] for xy in item_sprites)
+        maxy = max(xy[1] for xy in item_sprites)
+        self.item_bottoms[i] = bot = 4 - maxy
+        self.item_rights[i] = 3 - maxx
+        for s in chain(item_sprites.values(), menu_sprites.values()):
+            s.x += (3-maxx)/2 * 16
+            s.y += bot/2 * 16
+        thing_bg = self.ui_layer.add_sprite('thing_bg', color=(1, 1, 1, 0.5), pos=(0.5*16, 2*16))
+        menu_group = self.menu_groups[i] = Group((*menu_sprites.values(), thing_bg))
+        item_group = self.item_groups[i] = Group((*item_sprites.values(), ))
+        item_group.pos = menu_group.pos = self.menu_pos(i)
+        self.item_shortcuts[i] = []
+        self.item_kbd_labels[x, y] = []
+        self.assign_key(i, str((i + 1) % 10))
 
-        self.backdrop_layer.add_sprite('ledge', anchor_x=0, anchor_y=0)
+    for i, item in self.things.items():
+        code, tileinfo, label = item.split(':')
+        if len(label) == 1 and label in string.ascii_uppercase:
+            self.assign_key(i, label)
+    for i, item in self.things.items():
+        code, tileinfo, label = item.split(':')
+        if len(label) == 1 and label in string.ascii_lowercase:
+            self.assign_key(i, label.upper())
 
-        self.cursor_sprite = self.ui_layer.add_sprite('sel_cursor', pos=(self.cursor_pos(0)))
-
-        self.selected_pos = 0
-
-        self.things = {i: v for i, v in enumerate(self.game.info.things) if v}
-        self.item_sprites = {}
-        self.menu_sprites = {}
-        self.item_bottoms = {}
-        self.item_rights = {}
-        self.menu_groups = {}
-        self.item_groups = {}
-        self.item_kbd_labels = {}
-        self.item_shortcuts = {}
-        self.assigned_shortcuts = {}
-        for i, item in self.things.items():
-            item_sprites = self.item_sprites[i] = {}
-            menu_sprites = self.menu_sprites[i] = {}
-            for x, y, image, angle in get_thing_sprite_info(item):
-                s = self.menu_layer.add_sprite(image, pos=(x * 16, y * 16), angle=angle, scale=1/4+1/64, color=(.5, .5, .5, 1))
-                menu_sprites[x, y] = s
-                s = self.item_layer.add_sprite(image, pos=(x * 16, y * 16), angle=angle, scale=1/4+1/64, color=(0, 0, 0, 1))
-                item_sprites[x, y] = s
-            maxx = max(xy[0] for xy in item_sprites)
-            maxy = max(xy[1] for xy in item_sprites)
-            self.item_bottoms[i] = bot = 4 - maxy
-            self.item_rights[i] = 3 - maxx
-            for s in chain(item_sprites.values(), menu_sprites.values()):
-                s.x += (3-maxx)/2 * 16
-                s.y += bot/2 * 16
-            thing_bg = self.ui_layer.add_sprite('thing_bg', color=(1, 1, 1, 0.5), pos=(0.5*16, 2*16))
-            menu_group = self.menu_groups[i] = Group((*menu_sprites.values(), thing_bg))
-            item_group = self.item_groups[i] = Group((*item_sprites.values(), ))
-            item_group.pos = menu_group.pos = self.menu_pos(i)
-            self.item_shortcuts[i] = []
-            self.item_kbd_labels[x, y] = []
-            self.assign_key(i, str((i + 1) % 10))
-
-        for i, item in self.things.items():
-            code, tileinfo, label = item.split(':')
-            if len(label) == 1 and label in string.ascii_uppercase:
-                self.assign_key(i, label)
-        for i, item in self.things.items():
-            code, tileinfo, label = item.split(':')
-            if len(label) == 1 and label in string.ascii_lowercase:
-                self.assign_key(i, label.upper())
-
-        add_space_instruction(self.ui_layer, 'OK')
-
-        for place, i in enumerate(self.starting_display):
-            if i != None:
-                self.anim_to_place(i, place, d=0.001)
-        for place, i in enumerate(self.starting_display):
-            if i == None:
-                self.set_selection(place, d=0.001)
-                break
+class _Common:
 
     def assign_key(self, i, key):
         if key in self.assigned_shortcuts:
@@ -105,6 +88,34 @@ class Shadowing:
         return 208-16 + 144 * i, 320 - 64
 
     def on_key_down(self, key):
+        if value := KEY_VALUES.get(key):
+            if (i := self.assigned_shortcuts.get(value)) is not None:
+                self.select(i)
+
+
+class Shadowing(_Common):
+    def __init__(self, game):
+        self.game = game
+        self.starting_display = list(self.game.info.display)
+        make_palette(self)
+
+        self.backdrop_layer.add_sprite('ledge', anchor_x=0, anchor_y=0)
+
+        self.cursor_sprite = self.ui_layer.add_sprite('sel_cursor', pos=(self.cursor_pos(0)))
+
+        self.selected_pos = 0
+
+        add_space_instruction(self.ui_layer, 'OK')
+
+        for place, i in enumerate(self.starting_display):
+            if i != None:
+                self.anim_to_place(i, place, d=0.001)
+        for place, i in enumerate(self.starting_display):
+            if i == None:
+                self.set_selection(place, d=0.001)
+                break
+
+    def on_key_down(self, key):
         if key == keys.ESCAPE:
             if self.game.info.display[self.selected_pos] != None:
                 self.select(None)
@@ -114,11 +125,10 @@ class Shadowing:
             self.adjust_selection(+1)
         elif key == keys.LEFT:
             self.adjust_selection(-1)
-        elif value := KEY_VALUES.get(key):
-            if (i := self.assigned_shortcuts.get(value)) is not None:
-                self.select(i)
-        if key == keys.SPACE:
+        elif key == keys.SPACE:
             self.end()
+        else:
+            super().on_key_down(key)
 
     def end(self):
         if self.starting_display == self.game.info.display:
@@ -163,3 +173,51 @@ class Shadowing:
     def set_selection(self, pos, d=1/4):
         self.selected_pos = pos
         animate(self.cursor_sprite, pos=self.cursor_pos(pos), duration=d, tween='accel_decel')
+
+class CastAway(_Common):
+    def __init__(self, game):
+        self.game = game
+        make_palette(self)
+
+        for i, line in enumerate((
+            "You don't have space for any more Items.",
+            "Select one you don't need and cast it away.",
+        )):
+            self.ui_layer.add_label(
+                line,
+                font='kufam_medium',
+                color=(*THAT_BLUE, 1),
+                pos=(game.scene.width/2, game.scene.height/3 - 32 + i * 32),
+                align='center',
+                fontsize=20,
+            )
+        self.spc = add_space_instruction(self.ui_layer, "Cast it away")
+        for s in self.spc:
+            s.color = (*s.color[:3], 0)
+
+        self.selection = None
+
+    def on_key_down(self, key):
+        if key == keys.ESCAPE:
+            self.game.abort_activity()
+        elif key == keys.SPACE:
+            if self.selection != None:
+                self.game.info.remove_thing(self.selection)
+                self.game.abort_activity()
+        else:
+            super().on_key_down(key)
+
+    def select(self, i, place=None):
+        for ss in self.item_sprites.values():
+            for s in ss.values():
+                s.color = 0, 0, 0, 1
+        if self.things[i]:
+            self.selection = i
+        if self.selection is not None:
+            for s in self.item_sprites[self.selection].values():
+                s.color = 1, .2, 0, 1
+            spc_alpha = 1
+        else:
+            spc_alpha = 0
+        for s in self.spc:
+            s.color = (*s.color[:3], spc_alpha)

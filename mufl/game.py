@@ -7,7 +7,7 @@ from .dicy import DiceThrowing
 from .info import Info, InfoNode
 from .island import Island
 from .burrow import Burrowing
-from .shadow import Shadowing
+from .shadow import Shadowing, CastAway
 from .missile import AskMissile
 
 
@@ -111,7 +111,10 @@ class Game:
             elif idx == 1:
                 self.go_dice()
             elif idx == 2:
-                self.go_burrow()
+                if self.info.things_full:
+                    self.go_castaway()
+                else:
+                    self.go_burrow()
             elif idx == 3:
                 self.go_shadow()
             elif idx == 4:
@@ -153,6 +156,9 @@ class Game:
 
     def go_ask(self):
         self.activity = AskMissile(self)
+
+    def go_castaway(self):
+        self.activity = CastAway(self)
 
     def return_to_island(self):
         self.scene.layers.pop(40, None)

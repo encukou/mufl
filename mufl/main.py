@@ -18,6 +18,7 @@ game.info.add_thing('ODL0:OOOOLO?O00KOM0000000:P')
 game.info.add_thing('L8L0:OOL003O<00COL0000000:H')
 game.info.add_thing('OE@@:OOOONO9I9IO0000I0000:e')
 game.info.add_thing('LDL0:OON00O7O00KOM0000000:o')
+game.info.add_thing('LDL0:OON00O7O00KOM0000000:o')
 game.info.display[:] = 6, 7, 5, 1
 game.info.food = game.info.magic = game.info.cube = 2
 game.island.reset()

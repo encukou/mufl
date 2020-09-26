@@ -131,6 +131,12 @@ class Info:
         self.things.append(thing)
         self.thing += 1
 
+    def remove_thing(self, i):
+        thing = self.things[i]
+        print('Casting away', thing)
+        self.things[i] = None
+        self.thing -= 1
+
     def display_message(self, message):
         print(message)
         rect = self.temp_layer.add_rect(
@@ -177,6 +183,12 @@ class Info:
     @property
     def message_assembled(self):
         return self.message == 'HELP'
+
+    @property
+    def things_full(self):
+        if len(self.things) >= 10 and all(t != None for t in self.things):
+            return True
+        return False
 
 @dataclass
 class InfoNode(ChainNode):
