@@ -1,5 +1,7 @@
 from wasabi2d import clock, keyboard, animate, keys
 
+CHEAT = True
+
 KEY_NUMBERS = {
     keys.K_1: 1,
     keys.KP1: 1,

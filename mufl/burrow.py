@@ -1,11 +1,14 @@
-from random import shuffle
+from random import shuffle, choice
 from math import tau
 from enum import Enum
 from dataclasses import dataclass
+import pkgutil
+from itertools import zip_longest
+import string
 
-from wasabi2d import clock, keys
+from wasabi2d import clock, keys, event
 
-from .common import add_key_icon, change_sprite_image, KEY_NUMBERS, add_space_instruction
+from .common import add_key_icon, change_sprite_image, KEY_NUMBERS, add_space_instruction, CHEAT
 from .fixes import animate
 
 
@@ -42,6 +45,26 @@ ROTS = {
     (-1, 0): 2,
     (0, -1): 3,
 }
+
+
+SYMBOLS = {}
+text = pkgutil.get_data('mufl', 'text/symbols.txt').decode('utf-8')
+for line in text.splitlines():
+    sym, codes = line.rsplit(maxsplit=1)
+    for i in range(0, len(codes), 4):
+        key = codes[i:i+4]
+        SYMBOLS[key] = sym
+
+def encode_letter(letter):
+    enc = []
+    for x in range(4):
+        num = 0
+        for y in range(5):
+            num <<= 1
+            if (x, y) in letter:
+                num += 1
+        enc.append(chr(48+num))
+    return ''.join(enc)
 
 
 class Burrowing:
@@ -124,7 +147,7 @@ class Burrowing:
                 self.hypno_emitters.append(em)
 
         for card in (
-            'card_foot','card_left','card_foot','card_right',
+            #'card_foot','card_left','card_foot','card_right',
             #'card_foot',
             #'card_foot',
             #'card_foot',
@@ -143,12 +166,15 @@ class Burrowing:
             #'card_foot',
             #'card_left',
             #'card_left',
-            'card_foot',
-            'card_foot',
-            'card_foot',
+            #'card_foot',
+            #'card_foot',
+            #'card_foot',
         ):
             self.decks[0].append(Card(card))
             self.add_card(0)
+
+        if CHEAT:
+            clock.coro.run(self.cheat())
 
     def update_deck_sprites(self):
         for i, deck in enumerate(self.decks):
@@ -407,6 +433,157 @@ class Burrowing:
                     animate(card.sel_sprite, scale=0, color=(1, 1, 1, 0), duration=D)
 
         await animate(sprite, scale=0, duration=(10-slp)/20)
+
+    async def cheat(self):
+        async for t in clock.coro.frames():
+            if cheaty_clicks:
+                x, y = cheaty_clicks.pop()
+                print(x, y)
+                x -= 304 - 32
+                x //= 62
+                y -= 315 - 32
+                y //= 62
+                print(x, y)
+                if tile := self.thing.get((x, y)):
+                    tile.filled = not tile.filled
+                    tile.update_sprite(self.tile_sprites[x, y])
+                enc = self.classify()
+                try:
+                    import pyperclip
+                except ImportError:
+                    pass
+                else:
+                    pyperclip.copy(enc)
+                sym = SYMBOLS.get(enc)
+                print(self.get_mesage(sym))
+
+    def classify(self):
+        shape = frozenset(pos for (pos, tile) in self.thing.items() if tile.filled)
+        enc = encode_letter(shape)
+        print(enc, shape)
+        print(SYMBOLS.get(enc))
+        return enc
+
+    def get_mesage(self, sym):
+        def cls(*choices):
+            return choice(list(set((choices))))
+        usefuls = (
+            "It doesn't look useful.",
+            "Probably not too useful here.",
+            "Probably not too useful.",
+            "In other words, trash.",
+            "It doesn't look useful here.",
+            "You don't know what to do with that.",
+        )
+        if sym is None:
+            ci = cls('curious', 'interesting', 'weird')
+            useful = cls(*usefuls)
+            useful_waste = cls(
+                *usefuls,
+                "A waste of metal.",
+                "A waste of material.",
+                "Frankly, a waste of metal.",
+            )
+            return cls(
+                f"That doesn't remind you of anything. {useful_waste}",
+                f"It's… um… modern art? {useful_waste}",
+                f"Doesn't look familiar. {useful_waste}",
+                f"That's a {ci} piece of metal. {useful}",
+                f"That's a {ci} hunk of metal. {useful}",
+            )
+        if sym in ('.', 'box'):
+            return cls(
+                f"A roughly rectangular piece of metal.",
+            ) + " " + cls(*usefuls)
+        if len(sym) == 1:
+            if sym in string.ascii_uppercase:
+                letrune = choice(('letter', 'rune'))
+                message = cls(
+                    f"That is the {letrune} {sym}!",
+                    f"That's the {letrune} {sym}!",
+                    f"It is the {letrune} {sym}!",
+                    f"It's the {letrune} {sym}!",
+                    f"A perfect {letrune} {sym}!",
+                    f"A perfect {sym}!",
+                    f"You made the {letrune} {sym}!",
+                    f"You made a {sym}!",
+                    f"The {letrune} {sym}!",
+                )
+                if sym in 'HELP':
+                    message += cls(
+                        f" That should get some attention!",
+                        f" Display it!",
+                        f" That will be helpful!",
+                    )
+                else:
+                    message += " " + cls(
+                        *usefuls,
+                        "That's not too interesting.",
+                        "It doesn't look useful.",
+                    )
+                return message
+            if sym in string.ascii_lowercase:
+                sym = sym.upper()
+                letrune = choice(('letter', 'rune'))
+                message = cls(
+                    f"That resembles the {letrune} {sym}.",
+                    f"Looks a bit like the {letrune} {sym}.",
+                    f"Someone could read it as the {letrune} {sym}...",
+                    f"It's a bit like the {letrune} {sym}!",
+                    f"It's similar to a {sym}!",
+                )
+                if sym in 'HELP':
+                    message += cls(
+                        f" That could get some attention.",
+                        f" Try to display it.",
+                        f" That might be helpful!",
+                    )
+                else:
+                    message += " " + cls(
+                        *usefuls,
+                        f"Frankly, a waste of metal.",
+                    )
+                return message
+            else:
+                message = cls(
+                    f"That resembles the symbol {sym}...",
+                    f"It's… the symbol “{sym}”!",
+                    f"Someone could read it as “{sym}”",
+                    f"It's a bit like a “{sym}”.",
+                    f"It's similar to a “{sym}”.",
+                )
+                message += " " + cls(
+                    *usefuls,
+                    "Frankly, a waste of metal.",
+                )
+                return message
+        elif sym == 'hook':
+            return cls(
+                f"A hook! Might make the fishing easier.",
+                f"It's a fish hook!",
+                f"A hook! You'll use it next time you fish.",
+                f"A metal fish hook! Probably not effective than your regular ones, though.",
+            )
+        else:
+            return cls(
+                f"It's a {sym}.",
+                f"A {sym}!",
+                f"It resembles a {sym}.",
+                f"You made a metal {sym}!",
+                f"Looks like a {sym}.",
+            ) + " You don't see how it can be useful here."
+
+
+cheaty_clicks = []
+if CHEAT:
+    def _sort_key(p):
+        if len(p) == 1:
+            return 0, p
+        return 1, p
+    print(sorted(set(SYMBOLS.values()), key=_sort_key))
+    @event
+    def on_mouse_down(pos):
+        cheaty_clicks.append(pos)
 
 
 class ThingTile:
