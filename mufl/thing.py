@@ -121,7 +121,7 @@ def get_thing_mesage(encoded):
         "You don't see how it can be useful here.",
     )
     if sym is None:
-        ci = cls('curious', 'interesting', 'weird')
+        ci = cls('a curious', 'an interesting', 'a weird')
         useful = cls(*usefuls)
         useful_waste = cls(
             *usefuls,
@@ -130,11 +130,11 @@ def get_thing_mesage(encoded):
             "Frankly, this is a waste of metal.",
         )
         return cls(
-            f"That doesn't remind you of anything. {useful_waste}",
-            f"It's… um… modern art? {useful_waste}",
-            f"Doesn't look familiar. {useful_waste}",
-            f"That's a {ci} piece of metal. {useful}",
-            f"That's a {ci} hunk of metal. {useful}",
+            f"That doesn't remind you of anything.\n{useful_waste}",
+            f"It's… um… modern art?\n{useful_waste}",
+            f"Doesn't look familiar.\n{useful_waste}",
+            f"That's {ci} piece of metal.\n{useful}",
+            f"That's {ci} hunk of metal.\n{useful}",
         )
     if sym == 'box':
         return cls(
@@ -211,7 +211,7 @@ def get_thing_mesage(encoded):
             f"A hook!\nMight make the fishing easier.",
             f"It's a fish hook!",
             f"A hook!\nYou'll use it next time you fish.",
-            f"A metal fish hook!\nProbably not effective than your regular ones, though.",
+            f"A metal fish hook!\nProbably not more effective than your regular ones.",
         )
     else:
         return cls(

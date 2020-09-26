@@ -6,11 +6,14 @@ from wasabi2d import clock, Group, keyboard, keys
 
 from .fixes import animate, fix_transforms
 from .common import add_key_icon, add_space_instruction
+from .music import play_sound
 
 MAX_FISH_WIDTH = 16*4*2
 FISH_SIZE = 16*1.5
 
 class Fishing:
+    music_track = 'fish'
+
     def __init__(self, game, on_finish):
         self.game = game
         fish_layer = game.scene.layers[1]
@@ -56,15 +59,15 @@ class Fish:
         }
         if abs(hue - 1/6) < random() / 16:
             kind = 'fish_crown'
-            self.bonus['magic'] += randrange(5, 8)
+            self.bonus['magic'] += randrange(5, 9)
             hue = 1/6
         elif random() < 1 / 32 and self.fishing.game.info.cube < 6:
             kind = 'fish_box'
             fin_pos = 16, -12
             anchor_x = 20
             anchor_y = 48
-            self.bonus['magic'] += 1
-            self.bonus['cube'] += 1 + self.bonus['magic'] // 4
+            self.bonus['magic'] += 2
+            self.bonus['cube'] += 1
         elif self.bonus['magic']:
             kind = 'fish_scaly'
         color = colorsys.hsv_to_rgb(hue, .7, .9)
@@ -253,6 +256,7 @@ class Hook:
                 y = -self.scene.height * 10
             if (y < 0) != (self.sprite.y < 0):
                 if 1or self.hooked_fish:
+                    play_sound('wave')
                     self.particle_group.emit(
                         abs(ys)/2, size=10, size_spread=10,
                         vel_spread=(100, 50),
@@ -281,9 +285,10 @@ class Hook:
                 if not self.hooked_fish:
                     self.caught_timer -= dt
                     if self.caught_timer < 0:
-                        if randrange(2*sum(fish.bonus.values())) < 4:
+                        if randrange(sum(fish.bonus.values())) < 2:
                             self.catch_fish()
                         else:
+                            play_sound('fish-got-away')
                             self.caught_fish = None
                             fish.caught = False
                             fish.cooldown = 1
@@ -298,6 +303,7 @@ class Hook:
                     dist = hypot(*(self.sprite.pos - fish.group.pos)) / (FISH_SIZE * 4)
                     if dist < 1:
                         if dist < 1/4/2 and fish.cooldown <= 0:
+                            play_sound('bite', volume=.4)
                             fish.mouth_sprite.angle = 0
                             self.caught_fish = fish
                             self.sprite.image = 'hook_in'

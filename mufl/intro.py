@@ -4,6 +4,8 @@ from wasabi2d import keys
 from .common import THAT_BLUE, add_key_icon, add_space_instruction
 
 class Intro:
+    music_track = 'intro'
+
     def __init__(self, game):
         self.game = game
         backdrop_layer = game.scene.layers[1]

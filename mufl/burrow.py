@@ -9,7 +9,7 @@ from wasabi2d import clock, keys, event
 from .common import add_key_icon, change_sprite_image, KEY_NUMBERS, add_space_instruction, CHEAT, THAT_BLUE
 from .fixes import animate
 from .thing import ThingTile, get_thing_mesage, classify_thing, encode_thing
-
+from .music import play_sound
 
 @dataclass
 class Card:
@@ -48,6 +48,7 @@ ROTS = {
 
 
 class Burrowing:
+    music_track = 'burrow'
     end_fadeout_scale = 0
 
     def __init__(self, game):
@@ -238,6 +239,7 @@ class Burrowing:
             card = self.decks[i].pop()
         except IndexError:
             return
+        play_sound('set-card')
         card.face_up = True
         clock.schedule(lambda: self.turn_deck(i), 0.2, strong=True)
         card.origin_deck = i
@@ -354,6 +356,7 @@ class Burrowing:
         return (*pos, d, crashed)
 
     async def burrow(self):
+        play_sound('hypno-start')
         self.game.info.magic -= 2
 
         for s in (*self.deck_sprites, *chain(*self.deck_keylabels)):
@@ -366,6 +369,8 @@ class Burrowing:
             else:
                 main_coro = coro
         await main_coro
+        await clock.coro.sleep(1/4)
+        play_sound('cast')
 
         for em in self.hypno_emitters:
             em.rate = 0

@@ -16,6 +16,7 @@ from pyrr import Quaternion, Vector3
 
 from .info import COLORS as BONUS_COLORS
 from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, CHEAT
+from .music import play_sound
 
 # Parts pilfered from wasabi2d/primitives/sprites.py
 
@@ -296,6 +297,7 @@ class Die:
                         low_pt = point
         if low_pt[2] >= dist:
             return False
+        #play_sound('die-hit')
         self.locked = False
         rot_imp = Vector3(norm).cross(Vector3((*low_pt.xy, 0.0))) * (.5 + hypot(*self.speed) / 10)
         riq = Quaternion.from_axis(rot_imp)
@@ -328,6 +330,7 @@ class Die:
                 self.speed -= direction * 20
 
 class DiceThrowing:
+    music_track = 'dice'
     end_fadeout_scale = 0
 
     def __init__(self, game, on_finish):
@@ -374,6 +377,8 @@ class DiceThrowing:
                             to_check.discard(other)
                             animate(line, stroke_width=5)
                             bonuses = Counter(BONUSES[die.face]) + Counter(BONUSES[other.face]) + Counter(magic=3)
+                            if BONUSES[die.face] == {'magic': 1}:
+                                bonuses['magic'] += 6
                             midpos = (die.pos[:2] + other.pos[:2]) / 2
                             self.game.info.give(**bonuses, pos=midpos, sleep=1.5, outline=True, hoffset=0.5)
                             animate(die, size=die.size*1.1)
@@ -396,6 +401,7 @@ class DiceThrowing:
             self.selecting = False
             return True
         elif key in (keys.SPACE, keys.RETURN):
+            play_sound('die-roll')
             self.selecting = False
             self.dice = [d for d, v in zip(self.dice, self.selection) if v]
             for die in self.dice:
@@ -405,6 +411,7 @@ class DiceThrowing:
             del self.game.scene.layers[4]
             self.game.info.magic -= sum(self.selection)
         if (num := KEY_NUMBERS.get(key)) is not None:
+            play_sound('die-select')
             self.toggle_die(num - 1)
 
     def toggle_die(self, number, time=1, recurse=True):

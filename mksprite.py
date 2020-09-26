@@ -1,6 +1,19 @@
 from PIL import Image
+import numpy
 
 base = Image.open('pics.png')
+
+# Some images have alpha of 1 or 2 where they should be transparent,
+# so that the RGB colors are retained and blending to them works.
+# (Inkscape encodes any transparent color as (0, 0, 0, 0), so edges always
+# blend to black, even white shapes...)
+# Nudge these towards zero.
+arr = numpy.array(base)
+alphas = arr[..., 3]
+alphas[(0 < alphas) & (alphas < 256 // 3)] -= 1
+alphas[(0 < alphas) & (alphas < 256 // 3*2)] -= 1
+print(numpy.unique(arr[..., 3], return_counts=True))
+base = Image.fromarray(arr)
 
 UNIT = 128
 

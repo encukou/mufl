@@ -6,7 +6,7 @@ from wasabi2d.chain import ChainNode
 
 from .common import THAT_BLUE, CHEAT
 from .fixes import animate
-
+from .music import play_sound
 
 class VisualizedProperty:
     def __set_name__(self, owner, name):
@@ -18,6 +18,7 @@ class VisualizedProperty:
         owner._row_now += 1
 
     def __set__(self, obj, value):
+        prev = getattr(obj, self.storage_name, 0)
         setattr(obj, self.storage_name, value)
         sprite = obj.sprites[self.name]
         label = obj.labels[self.name]
@@ -28,6 +29,8 @@ class VisualizedProperty:
             animate(sprite, color=(*sprite.color[:3], 0), duration=.2)
             animate(label, color=(*label.color[:3], 0), duration=.2)
         label.text = str(value)
+        #if value > prev:
+        #    play_sound('resource-get', volume=0.2)
         if obj.game.island:
             obj.game.island.on_wealth_changed()
 
@@ -190,7 +193,12 @@ class Info:
     def add_thing(self, thing):
         if CHEAT:
             print(thing)
-        self.things.append(thing)
+        for i, t in enumerate(self.things):
+            if t is None:
+                self.things[i] = thing
+                break
+        else:
+            self.things.append(thing)
         self.thing += 1
 
     def remove_thing(self, i):

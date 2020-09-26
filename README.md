@@ -1,29 +1,37 @@
-Cast Away!
-==========
+Cast Away! ("MUFL")
+===================
 
 Entry in PyWeek #30  <https://pyweek.org/30/>
 Team: encukou
 Members: encukou
 
 
-## Dependencies:
+## Install and run
 
 You will need Python 3.8 (or above).
 
-You might need to install some of these before running the game:
+To make a virtualenv, install dependencies and run the game, run:
+
+    python install_and_run.py
+
+
+### Manual install
+
+You will need Python 3.8 (or above),
+and preferably a virtual environment (venv).
+
+You will need to install these before running the game:
 
  * wasabi2d == 1.4.0
  * numpy == 1.17.5
  * pyrr == 0.10.3
+ * and their dependencies
 
 Do that using:
 
     python -m pip install -r requirements.txt
 
-
-## Running the game:
-
-Open a terminal / console, "cd" to the game directory and run:
+To run the game, "cd" to the game directory and run:
 
     python run_game.py
 
@@ -39,6 +47,19 @@ Controls:
 
 Other keys (arrows, numbers and letters) are mentioned on-screen when needed.
 
+
+## Music & Sound Effects
+
+Music by Eric Matyas
+www.soundimage.org
+
+Most Sound Effects alsoby Eric Matyas
+www.soundimage.org
+
+Other sound effects, CC0:
+"Splash" from https://opengameart.org/content/fisheefects
+"random6" (biting sound) from https://opengameart.org/content/rpg-sound-pack
+"dingCling-neutral" from https://opengameart.org/content/6-user-interface-ding-clicks
 
 ### License
 

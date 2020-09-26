@@ -11,6 +11,7 @@ from .info import COLORS as BONUS_COLORS
 from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, change_sprite_image, THAT_BLUE
 from .fixes import animate
 from .thing import get_thing_sprite_info
+from .music import play_sound
 
 def add_rect_with_topleft_anchor(layer, x, y, w, h, **kwargs):
     return layer.add_rect(w, h, pos=(x+w/2, y+h/2), **kwargs)
@@ -63,6 +64,15 @@ class Island:
         self.caption_labels = []
         self.keyboard_icons = []
         self.cost_icons = []
+
+        self.top_layer.add_label(
+            'All Music by Eric Matyas, www.soundimage.org',
+            pos=(self.game.scene.width, self.game.scene.height-4),
+            color=(0, 0, 0, 1),
+            align='right',
+            font='kufam_medium',
+            fontsize=12.5,
+        )
 
         ys = 0
         ysep = 110
@@ -184,6 +194,8 @@ class Island:
             self.move_cursor(-1)
         if (num := KEY_NUMBERS.get(key)) is not None:
             if 1 <= num <= 5 and self.game.info.known_actions[num - 1]:
+                if self.last_selected != num - 1:
+                    play_sound('menu-move')
                 self.last_selected = num - 1
             self.update_help()
         if key == key.SPACE:
@@ -207,6 +219,7 @@ class Island:
                 if self.affordable[num]:
                     self.last_selected = num
                     break
+        play_sound('menu-move')
         self.update_help()
 
     def update_help(self):
@@ -375,6 +388,8 @@ class Island:
                     vel_spread=(16, 16), size=15, size_spread=5,
                     spin_spread=tau/4,
                 )
+                play_sound('missile-launch')
+                play_sound('missile-launch2')
 
                 duration = 8
                 async for t in clock.coro.frames(seconds=duration):
@@ -391,7 +406,11 @@ class Island:
                     spin_spread=tau/4,
                     angle_spread=tau, size=20, size_spread=10,
                 )
-                sparks_layer.set_effect('trails', fade=0.5)
+                pg.max_age = 5
+                sparks_layer.set_effect('trails', fade=0.7)
+                play_sound('missile-boom')
+                play_sound('missile-boom')
+                play_sound('missile-boom2')
                 await animate(sprite, scale=3, color=(1, 1, 1, 0), duration=2, tween='decelerate')
                 await clock.coro.sleep(4)
                 cam_x, cam_y = camera.pos

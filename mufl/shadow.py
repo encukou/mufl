@@ -7,6 +7,7 @@ from wasabi2d import Group, keys, clock
 from .thing import get_thing_sprite_info
 from .common import add_key_icon, add_space_instruction, THAT_BLUE
 from .fixes import animate
+from .music import play_sound
 
 KEY_VALUES = {getattr(keys, k): k for k in string.ascii_uppercase}
 for prefix in 'K_', 'KP_', 'F':
@@ -94,6 +95,8 @@ class _Common:
 
 
 class Shadowing(_Common):
+    music_track = 'shadow'
+
     def __init__(self, game):
         self.game = game
         self.starting_display = list(self.game.info.display)
@@ -136,6 +139,7 @@ class Shadowing(_Common):
         self.game.abort_activity(return_food=False, deselect=True)
 
     def select(self, i, place=None):
+        play_sound('set-item')
         if place is None:
             place = self.selected_pos
         if (prev := self.game.info.display[place]) != None:
@@ -203,11 +207,13 @@ class CastAway(_Common):
         elif key == keys.SPACE:
             if self.selection != None:
                 self.game.info.remove_thing(self.selection)
+                play_sound('set-item')
                 self.game.abort_activity()
         else:
             super().on_key_down(key)
 
     def select(self, i, place=None):
+        play_sound('menu-move')
         for ss in self.item_sprites.values():
             for s in ss.values():
                 s.color = 0, 0, 0, 1

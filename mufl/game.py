@@ -12,6 +12,7 @@ from .burrow import Burrowing
 from .shadow import Shadowing, CastAway
 from .missile import AskMissile
 from .intro import Intro
+from .music import set_music, play_sound
 
 
 class Game:
@@ -37,6 +38,8 @@ class Game:
             chain.LayerRange(start=8, stop=11),
         ]
         self.info_node = InfoNode(self.info_layers)
+
+        self.input_locked = False
 
         self.island = None
         self.info = Info(self, self.info_layer1, self.info_layer2)
@@ -65,8 +68,10 @@ class Game:
 
         if self.info.food > 0:
             self.return_to_island()
+            set_music('main')
         else:
             self.go_do(None, from_island=False)
+            set_music('intro')
 
     def set_missile_chain(self):
         fill = chain.Fill((0, 0, 0, 1))
@@ -100,56 +105,63 @@ class Game:
 
     def go_do(self, idx, from_island=True):
         if idx == 4 and self.info.message_assembled:
+            set_music('win')
             self.island.fire_missile()
             return
         if idx is not None:
             self.info.food -= 1
+        play_sound('menu-select')
         self.activity = None
         for i in range(5):
             self.scene.layers.pop(i, None)
         async def coro():
-            if from_island:
+            self.input_locked = True
+            try:
+                if from_island:
+                    self.scene.chain = [
+                        *self.island_layers,
+                        self.fade_layers,
+                        self.info_node,
+                    ]
+                self.fade_circ.color = (0, 0, 0, 0)
+                self.fade_rect.color = (0, 0, 0, 0)
+                await animate(self.fade_rect, color=(0, 0, 0, 1), duration=0.25, tween='accelerate')
+                black = clock.coro.sleep(0.25)
+                if idx == None:
+                    self.go_intro()
+                elif idx == 0:
+                    self.go_fish()
+                elif idx == 1:
+                    self.go_dice()
+                elif idx == 2:
+                    if self.info.things_full:
+                        self.go_castaway()
+                    else:
+                        self.go_burrow()
+                elif idx == 3:
+                    self.go_shadow()
+                elif idx == 4:
+                    self.go_ask()
+                else:
+                    await black
+                    print('ERROR, unknown action')
+                    self.return_to_island()
+                    return
                 self.scene.chain = [
-                    *self.island_layers,
+                    self.action_layers,
                     self.fade_layers,
                     self.info_node,
                 ]
-            self.fade_circ.color = (0, 0, 0, 0)
-            self.fade_rect.color = (0, 0, 0, 0)
-            await animate(self.fade_rect, color=(0, 0, 0, 1), duration=0.25, tween='accelerate')
-            black = clock.coro.sleep(0.25)
-            if idx == None:
-                self.go_intro()
-            elif idx == 0:
-                self.go_fish()
-            elif idx == 1:
-                self.go_dice()
-            elif idx == 2:
-                if self.info.things_full:
-                    self.go_castaway()
-                else:
-                    self.go_burrow()
-            elif idx == 3:
-                self.go_shadow()
-            elif idx == 4:
-                self.go_ask()
-            else:
+                set_music(getattr(self.activity, 'music_track', None))
                 await black
-                print('ERROR, unknown action')
-                self.return_to_island()
-                return
-            self.scene.chain = [
-                self.action_layers,
-                self.fade_layers,
-                self.info_node,
-            ]
-            await black
-            await animate(self.fade_rect, color=(0, 0, 0, 0), duration=0.25, tween='accelerate')
-            self.fade_rect.color = (0, 0, 0, 0)
-            self.scene.chain = [
-                self.action_layers,
-                self.info_node,
-            ]
+                await animate(self.fade_rect, color=(0, 0, 0, 0), duration=0.25, tween='accelerate')
+                self.fade_rect.color = (0, 0, 0, 0)
+                self.scene.chain = [
+                    self.action_layers,
+                    self.info_node,
+                ]
+            finally:
+                self.input_locked = False
         clock.coro.run(coro())
 
     def go_fish(self):
@@ -201,41 +213,46 @@ class Game:
 
     def finish_activity(self, speedup=1, superfast=False, extra_delay=4, **bonus):
         self.activity = None
+        set_music('main')
         self.save()
         async def coro():
-            if speedup == 1:
-                tween = 'accelerate'
-                efs = getattr(self.activity, 'end_fadeout_scale', 100/64)
-            else:
-                tween = 'linear'
-                efs = 0
-            self.fade_circ.color = (0, 0, 0, 1)
-            self.fade_circ.scale = hypot(self.scene.width, self.scene.height)//2 / 50
-            ani = animate(self.fade_circ, scale=efs, duration=5/speedup, tween=tween)
-            self.scene.chain = [
-                chain.Fill(color=(.1, .1, .1, 1)),
-                chain.Mask(
-                    mask=self.fade_layers,
-                    paint=[chain.Fill(color=self.scene.background), self.action_layers],
-                ),
-                self.info_node,
-            ]
-            if extra_delay:
-                await clock.coro.sleep(extra_delay)
-            self.info.give(sleep=1, **bonus)
-            await ani
-            if self.fade_circ.scale:
-                await clock.coro.sleep(1)
-                await animate(self.fade_circ, scale=0, duration=self.fade_circ.scale, tween='accelerate')
-            self.scene.chain = [
-                *self.island_layers,
-                self.fade_layers,
-                self.info_node,
-            ]
-            self.fade_rect.color = (0, 0, 0, 1)
-            await animate(self.fade_rect, color=(0, 0, 0, 0), duration=0.25, tween='accelerate')
-            for i in range(5):
-                self.scene.layers.pop(i, None)
+            self.input_locked = True
+            try:
+                if speedup == 1:
+                    tween = 'accelerate'
+                    efs = getattr(self.activity, 'end_fadeout_scale', 100/64)
+                else:
+                    tween = 'linear'
+                    efs = 0
+                self.fade_circ.color = (0, 0, 0, 1)
+                self.fade_circ.scale = hypot(self.scene.width, self.scene.height)//2 / 50
+                ani = animate(self.fade_circ, scale=efs, duration=5/speedup, tween=tween)
+                self.scene.chain = [
+                    chain.Fill(color=(.1, .1, .1, 1)),
+                    chain.Mask(
+                        mask=self.fade_layers,
+                        paint=[chain.Fill(color=self.scene.background), self.action_layers],
+                    ),
+                    self.info_node,
+                ]
+                if extra_delay:
+                    await clock.coro.sleep(extra_delay)
+                self.info.give(sleep=1, **bonus)
+                await ani
+                if self.fade_circ.scale:
+                    await clock.coro.sleep(1)
+                    await animate(self.fade_circ, scale=0, duration=self.fade_circ.scale, tween='accelerate')
+                self.scene.chain = [
+                    *self.island_layers,
+                    self.fade_layers,
+                    self.info_node,
+                ]
+                self.fade_rect.color = (0, 0, 0, 1)
+                await animate(self.fade_rect, color=(0, 0, 0, 0), duration=0.25, tween='accelerate')
+                for i in range(5):
+                    self.scene.layers.pop(i, None)
+            finally:
+                self.input_locked = False
             self.return_to_island()
         clock.coro.run(coro())
 
@@ -243,32 +260,37 @@ class Game:
         if return_food:
             self.info.food += 1
         self.activity = None
+        set_music('main')
         self.save()
         async def coro():
-            self.scene.chain = [
-                self.action_layers,
-                self.fade_layers,
-                self.info_node,
-            ]
-            self.fade_circ.color = (0, 0, 0, 0)
-            self.fade_rect.color = (0, 0, 0, 0)
-            await animate(self.fade_rect, color=(0, 0, 0, 1), duration=0.25, tween='accelerate')
-            black = clock.coro.sleep(0.25)
-            for i in range(5):
-                self.scene.layers.pop(i, None)
-            self.scene.chain = [
-                *self.island_layers,
-                self.fade_layers,
-                self.info_node,
-            ]
-            self.activity = self.island
-            self.island.reset()
-            await black
-            await animate(self.fade_rect, color=(0, 0, 0, 0), duration=0.25, tween='accelerate')
-            self.scene.chain = [
-                *self.island_layers,
-                self.info_node,
-            ]
+            self.input_locked = True
+            try:
+                self.scene.chain = [
+                    self.action_layers,
+                    self.fade_layers,
+                    self.info_node,
+                ]
+                self.fade_circ.color = (0, 0, 0, 0)
+                self.fade_rect.color = (0, 0, 0, 0)
+                await animate(self.fade_rect, color=(0, 0, 0, 1), duration=0.25, tween='accelerate')
+                black = clock.coro.sleep(0.25)
+                for i in range(5):
+                    self.scene.layers.pop(i, None)
+                self.scene.chain = [
+                    *self.island_layers,
+                    self.fade_layers,
+                    self.info_node,
+                ]
+                self.activity = self.island
+                self.island.reset()
+                await black
+                await animate(self.fade_rect, color=(0, 0, 0, 0), duration=0.25, tween='accelerate')
+                self.scene.chain = [
+                    *self.island_layers,
+                    self.info_node,
+                ]
+            finally:
+                self.input_locked = False
             if on_done:
                 on_done()
         clock.coro.run(coro())
@@ -276,6 +298,8 @@ class Game:
             self.island.deselect()
 
     def on_key_down(self, key):
+        if self.input_locked:
+            return
         try:
             on_key_down = self.activity.on_key_down
         except AttributeError:
@@ -284,6 +308,8 @@ class Game:
             return on_key_down(key)
 
     def on_key_up(self, key):
+        if self.input_locked:
+            return
         try:
             on_key_up = self.activity.on_key_up
         except AttributeError:
