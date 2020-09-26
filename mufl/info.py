@@ -3,6 +3,10 @@ from dataclasses import dataclass
 from wasabi2d import animate, clock
 from wasabi2d.chain import ChainNode
 
+from .common import THAT_BLUE
+from .fixes import animate
+
+
 class VisualizedProperty:
     def __set_name__(self, owner, name):
         self.owner = owner
@@ -63,6 +67,7 @@ class Info:
         self.thing = 0
 
         self.boxfish = []
+        self.things = []
 
         self.known_actions = [False] * 5
 
@@ -118,6 +123,38 @@ class Info:
                 self.game.island.on_wealth_changed()
             return True
         return False
+
+    def add_thing(self, thing):
+        self.things.append(thing)
+
+    def display_message(self, message):
+        print(message)
+        rect = self.temp_layer.add_rect(
+            self.scene.width*0.99, 64,
+            pos=(self.scene.width//2, self.scene.height//2-8),
+            color=(1, 1, 1, 0),
+        )
+        label = self.temp_layer.add_label(
+            message,
+            pos=(self.scene.width//2, self.scene.height//2),
+            align='center',
+            color=(*THAT_BLUE, 0),
+            fontsize=30,
+        )
+        async def animit():
+            animate(rect, color=(1, 1, 1, 0.9), duration=0.2)
+            await animate(label, color=(*THAT_BLUE, 1), duration=0.2)
+            await clock.coro.sleep(0.5 + len(message)/10)
+            animate(rect, color=(1, 1, 1, 0))
+            await animate(label, color=(*THAT_BLUE, 0))
+            await clock.coro.sleep(1)
+            try:
+                rect.delete()
+                label.delete()
+            except Exception:
+                # XXX : why?
+                pass
+        clock.coro.run(animit())
 
 
 @dataclass

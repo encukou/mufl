@@ -1,15 +1,14 @@
-from random import shuffle, choice
+from random import shuffle
 from math import tau
 from enum import Enum
 from dataclasses import dataclass
-import pkgutil
-from itertools import zip_longest
-import string
+from itertools import zip_longest, chain
 
 from wasabi2d import clock, keys, event
 
-from .common import add_key_icon, change_sprite_image, KEY_NUMBERS, add_space_instruction, CHEAT
+from .common import add_key_icon, change_sprite_image, KEY_NUMBERS, add_space_instruction, CHEAT, THAT_BLUE
 from .fixes import animate
+from .thing import ThingTile, get_thing_mesage, classify_thing, encode_thing
 
 
 @dataclass
@@ -28,7 +27,8 @@ def deck_pos(i):
     return 280 + 80*i, 128-24
 
 def selected_pos(i):
-    return 32 + 20 + 24 * ((i%32)-1), 160 + 38 * (i//32)
+    PER_ROW = 38
+    return 32 + 20 + 20 * ((i%PER_ROW)-1), 160 + 32 * (i//PER_ROW)
 
 def tile_pos(x, y):
     return 304 + x * 62, 315 + y * 62
@@ -47,27 +47,9 @@ ROTS = {
 }
 
 
-SYMBOLS = {}
-text = pkgutil.get_data('mufl', 'text/symbols.txt').decode('utf-8')
-for line in text.splitlines():
-    sym, codes = line.rsplit(maxsplit=1)
-    for i in range(0, len(codes), 4):
-        key = codes[i:i+4]
-        SYMBOLS[key] = sym
-
-def encode_letter(letter):
-    enc = []
-    for x in range(4):
-        num = 0
-        for y in range(5):
-            num <<= 1
-            if (x, y) in letter:
-                num += 1
-        enc.append(chr(48+num))
-    return ''.join(enc)
-
-
 class Burrowing:
+    end_fadeout_scale = 0
+
     def __init__(self, game):
         self.game = game
 
@@ -77,10 +59,11 @@ class Burrowing:
         self.turncard_layer = self.hypno_layer = game.scene.layers[3]
         self.selcard_layer = game.scene.layers[4]
 
-        cards = [Card(c) for c in ['card_foot'] * 22 + ['card_left'] * 20 + ['card_right'] * 20]
+        cards = [Card(c) for c in ['card_foot'] * 24 + ['card_left'] * 20 + ['card_right'] * 20]
         shuffle(cards)
         q = len(cards) // 4
         self.decks = cards[0:q], cards[q:2*q], cards[2*q:3*q], cards[3*q:4*q]
+        self.decks[0].append(Card(self.decks[0][0].value))
         self.decks[0].append(Card('card_foot'))
         self.decks[1].append(Card('card_left'))
         self.decks[2].append(Card('card_right'))
@@ -366,6 +349,10 @@ class Burrowing:
 
     async def burrow(self):
         self.game.info.magic -= 2
+
+        for s in (*self.deck_sprites, *chain(*self.deck_keylabels)):
+            animate(s, color=(*s.color[:3], 0), y=-100, duration=1, tween='accelerate')
+
         for i, sprite in enumerate(reversed(self.worm_sprites)):
             coro = self._burrow_one(sprite, i)
             if i:
@@ -373,12 +360,36 @@ class Burrowing:
             else:
                 main_coro = coro
         await main_coro
+
+        message = get_thing_mesage(classify_thing(self.thing))
+        message1, sep, message2 = message.partition('\n')
+        label = self.selcard_layer.add_label(
+            message1,
+            color=(*THAT_BLUE, 0),
+            pos=(self.game.scene.width//2, selected_pos(0)[1]+16),
+            align='center',
+            fontsize=30,
+        )
+        animate(label, color=(*THAT_BLUE, 1))
+        label = self.selcard_layer.add_label(
+            message2,
+            color=(*THAT_BLUE, 0),
+            pos=(self.game.scene.width//2, selected_pos(0)[1]+64),
+            align='center',
+            fontsize=30,
+        )
+        animate(label, color=(*THAT_BLUE, 1))
+
+        self.game.info.add_thing(encode_thing(self.thing))
         self.game.info.thing += 1
-        self.game.finish_activity(speedup=3)
+
+        await clock.coro.sleep(3)
+
+        self.game.finish_activity(speedup=3, extra_delay=0.1)
 
     async def _burrow_one(self, sprite, slp):
         is_head = not slp
-        D = 1/2
+        D = 1/20
         prev_pos = (0, -1)
         prev_d = (0, 1)
         if slp:
@@ -387,191 +398,81 @@ class Burrowing:
             if is_head and card.sel_sprite:
                 animate(card.sel_sprite, scale=0.5, duration=D/2)
 
-            if card.value == 'card_foot':
-                anim = animate(sprite, pos=tile_pos(*pos), duration=D)
-                await clock.coro.sleep(D/2)
-                if is_head:
-                    x, y = pos
-                    if tile := self.thing.get(pos):
-                        tile.set_wormy_corners(d)
-                        tile.update_sprite(self.tile_sprites[pos])
-                    if prev_tile := self.thing.get(prev_pos):
-                        prev_tile.set_wormy_corners(d, 2)
-                        prev_tile.update_sprite(self.tile_sprites[prev_pos])
-                    if prev_d != d:
-                        # Paint a corner
-                        r = ROTS[d]
-                        pr = ROTS[prev_d]
-                        if (r % 2) != (pr % 2):
-                            print(r, pr)
-                            x, y = pos
-                            pdx, pdy = prev_d
-                            cx = x - pdx
-                            cy = y - pdy
-                            if ctile := self.thing.get((cx, cy)):
-                                c = r // 2
-                                corner = [(3, 0), (1, 0), (2, 1), (2, 3)][pr][c]
-                                ctile.set_corner(corner + 2)
-                                ctile.update_sprite(self.tile_sprites[cx, cy])
-                if crashed:
-                    anim.stop()
-                    break
-                await anim
-                if is_head:
-                    if tile := self.thing.get((x, y)):
-                        tile.filled = True
-                        tile.update_sprite(self.tile_sprites[pos])
-                prev_d = d
-                prev_pos = pos
-            elif card.value == 'card_left':
-                await animate(sprite, angle=sprite.angle-tau/4, duration=D/2)
-            elif card.value == 'card_right':
-                await animate(sprite, angle=sprite.angle+tau/4, duration=D/2)
+            try:
+                if card.value == 'card_foot':
+                    anim = animate(sprite, pos=tile_pos(*pos), duration=D)
+                    await clock.coro.sleep(D/2)
+                    if is_head:
+                        x, y = pos
+                        if tile := self.thing.get(pos):
+                            tile.set_wormy_corners(d)
+                            tile.update_sprite(self.tile_sprites[pos])
+                        if prev_tile := self.thing.get(prev_pos):
+                            prev_tile.set_wormy_corners(d, 2)
+                            prev_tile.update_sprite(self.tile_sprites[prev_pos])
+                        if prev_d != d:
+                            # Paint a corner
+                            r = ROTS[d]
+                            pr = ROTS[prev_d]
+                            if (r % 2) != (pr % 2):
+                                x, y = pos
+                                pdx, pdy = prev_d
+                                cx = x - pdx
+                                cy = y - pdy
+                                if ctile := self.thing.get((cx, cy)):
+                                    c = r // 2
+                                    corner = [(3, 0), (1, 0), (2, 1), (2, 3)][pr][c]
+                                    ctile.set_corner(corner + 2)
+                                    ctile.update_sprite(self.tile_sprites[cx, cy])
+                    if crashed:
+                        anim.stop()
+                        break
+                    await anim
+                    if is_head:
+                        if tile := self.thing.get((x, y)):
+                            tile.filled = True
+                            tile.update_sprite(self.tile_sprites[pos])
+                    prev_d = d
+                    prev_pos = pos
+                elif card.value == 'card_left':
+                    await animate(sprite, angle=sprite.angle-tau/4, duration=D/2)
+                elif card.value == 'card_right':
+                    await animate(sprite, angle=sprite.angle+tau/4, duration=D/2)
 
-            if is_head:
-                if card.sel_sprite:
-                    animate(card.sel_sprite, scale=0, color=(1, 1, 1, 0), duration=D)
+            finally:
+                if is_head:
+                    if card.sel_sprite:
+                        animate(card.sel_sprite, scale=0, color=(1, 1, 1, 0), duration=D)
 
+        clock.coro.run(self._remove_cards())
         await animate(sprite, scale=0, duration=(10-slp)/20)
+
+    async def _remove_cards(self):
+        for card in self.selected:
+            if s := card.sel_sprite:
+                animate(s, scale=0, duration=0.3)
+                if not card.active:
+                    await clock.coro.sleep(0.001)
 
     async def cheat(self):
         async for t in clock.coro.frames():
             if cheaty_clicks:
                 x, y = cheaty_clicks.pop()
-                print(x, y)
                 x -= 304 - 32
                 x //= 62
                 y -= 315 - 32
                 y //= 62
-                print(x, y)
                 if tile := self.thing.get((x, y)):
                     tile.filled = not tile.filled
                     tile.update_sprite(self.tile_sprites[x, y])
-                enc = self.classify()
+                enc = classify_thing(self.thing)
                 try:
                     import pyperclip
                 except ImportError:
                     pass
                 else:
                     pyperclip.copy(enc)
-                sym = SYMBOLS.get(enc)
-                print(self.get_mesage(sym))
-
-    def classify(self):
-        shape = frozenset(pos for (pos, tile) in self.thing.items() if tile.filled)
-        enc = encode_letter(shape)
-        print(enc, shape)
-        print(SYMBOLS.get(enc))
-        return enc
-
-    def get_mesage(self, sym):
-        def cls(*choices):
-            return choice(list(set((choices))))
-        usefuls = (
-            "It doesn't look useful.",
-            "Probably not too useful here.",
-            "Probably not too useful.",
-            "In other words, trash.",
-            "It doesn't look useful here.",
-            "You don't know what to do with that.",
-        )
-        if sym is None:
-            ci = cls('curious', 'interesting', 'weird')
-            useful = cls(*usefuls)
-            useful_waste = cls(
-                *usefuls,
-                "A waste of metal.",
-                "A waste of material.",
-                "Frankly, a waste of metal.",
-            )
-            return cls(
-                f"That doesn't remind you of anything. {useful_waste}",
-                f"It's… um… modern art? {useful_waste}",
-                f"Doesn't look familiar. {useful_waste}",
-                f"That's a {ci} piece of metal. {useful}",
-                f"That's a {ci} hunk of metal. {useful}",
-            )
-        if sym in ('.', 'box'):
-            return cls(
-                f"A roughly rectangular piece of metal.",
-            ) + " " + cls(*usefuls)
-        if len(sym) == 1:
-            if sym in string.ascii_uppercase:
-                letrune = choice(('letter', 'rune'))
-                message = cls(
-                    f"That is the {letrune} {sym}!",
-                    f"That's the {letrune} {sym}!",
-                    f"It is the {letrune} {sym}!",
-                    f"It's the {letrune} {sym}!",
-                    f"A perfect {letrune} {sym}!",
-                    f"A perfect {sym}!",
-                    f"You made the {letrune} {sym}!",
-                    f"You made a {sym}!",
-                    f"The {letrune} {sym}!",
-                )
-                if sym in 'HELP':
-                    message += cls(
-                        f" That should get some attention!",
-                        f" Display it!",
-                        f" That will be helpful!",
-                    )
-                else:
-                    message += " " + cls(
-                        *usefuls,
-                        "That's not too interesting.",
-                        "It doesn't look useful.",
-                    )
-                return message
-            if sym in string.ascii_lowercase:
-                sym = sym.upper()
-                letrune = choice(('letter', 'rune'))
-                message = cls(
-                    f"That resembles the {letrune} {sym}.",
-                    f"Looks a bit like the {letrune} {sym}.",
-                    f"Someone could read it as the {letrune} {sym}...",
-                    f"It's a bit like the {letrune} {sym}!",
-                    f"It's similar to a {sym}!",
-                )
-                if sym in 'HELP':
-                    message += cls(
-                        f" That could get some attention.",
-                        f" Try to display it.",
-                        f" That might be helpful!",
-                    )
-                else:
-                    message += " " + cls(
-                        *usefuls,
-                        f"Frankly, a waste of metal.",
-                    )
-                return message
-            else:
-                message = cls(
-                    f"That resembles the symbol {sym}...",
-                    f"It's… the symbol “{sym}”!",
-                    f"Someone could read it as “{sym}”",
-                    f"It's a bit like a “{sym}”.",
-                    f"It's similar to a “{sym}”.",
-                )
-                message += " " + cls(
-                    *usefuls,
-                    "Frankly, a waste of metal.",
-                )
-                return message
-        elif sym == 'hook':
-            return cls(
-                f"A hook! Might make the fishing easier.",
-                f"It's a fish hook!",
-                f"A hook! You'll use it next time you fish.",
-                f"A metal fish hook! Probably not effective than your regular ones, though.",
-            )
-        else:
-            return cls(
-                f"It's a {sym}.",
-                f"A {sym}!",
-                f"It resembles a {sym}.",
-                f"You made a metal {sym}!",
-                f"Looks like a {sym}.",
-            ) + " You don't see how it can be useful here."
+                print(get_thing_mesage(enc))
 
 
 cheaty_clicks = []
@@ -580,55 +481,9 @@ if CHEAT:
         if len(p) == 1:
             return 0, p
         return 1, p
-    print(sorted(set(SYMBOLS.values()), key=_sort_key))
     @event
     def on_mouse_down(pos):
         cheaty_clicks.append(pos)
-
-
-class ThingTile:
-    def __init__(self):
-        self.filled = False
-        self.corners = [False] * 4
-
-    def update_sprite(self, sprite):
-        fc = '01'[self.filled]
-        num_corners = sum(self.corners)
-        if num_corners == 0:
-            image = f'block_{fc}0000'
-            rotation = 0
-        elif num_corners == 1:
-            image = f'block_{fc}1000'
-            rotation = tau/4 * self.corners.index(True)
-        elif num_corners == 2:
-            if self.corners == [True, False, True, False]:
-                image = f'block_{fc}1010'
-                rotation = 0
-            elif self.corners == [False, True, False, True]:
-                image = f'block_{fc}1010'
-                rotation = tau/4
-            elif self.corners == [True, False, False, True]:
-                image = f'block_{fc}1100'
-                rotation = tau*3/4
-            else:
-                image = f'block_{fc}1100'
-                rotation = tau/4 * self.corners.index(True)
-        elif num_corners == 3:
-            image = f'block_{fc}1110'
-            rotation = tau/4 * (self.corners.index(False) + 2)
-        else:
-            image = f'block_{fc}1111'
-            rotation = 0
-        change_sprite_image(sprite, image)
-        sprite.angle = rotation
-
-    def set_wormy_corners(self, d, plus=0):
-        rot = ROTS[d] + plus
-        self.set_corner(rot)
-        self.set_corner(rot-1)
-
-    def set_corner(self, c):
-        self.corners[c%4] = True
 
 
 def sched(func, time):

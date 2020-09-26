@@ -104,7 +104,7 @@ class Game:
         ]
         self.island.reset()
 
-    def finish_activity(self, speedup=1, **bonus):
+    def finish_activity(self, speedup=1, superfast=False, extra_delay=4, **bonus):
         self.activity = None
         async def coro():
             if speedup == 1:
@@ -124,7 +124,8 @@ class Game:
                 ),
                 self.info_node,
             ]
-            await clock.coro.sleep(4)
+            if extra_delay:
+                await clock.coro.sleep(extra_delay)
             self.info.give(sleep=1, **bonus)
             await ani
             if self.fade_circ.scale:

@@ -5,9 +5,7 @@ from itertools import zip_longest
 from wasabi2d import animate
 
 from .info import COLORS as BONUS_COLORS
-from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, change_sprite_image
-
-THAT_BLUE = 0.1, 0.3, 0.8
+from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, change_sprite_image, THAT_BLUE
 
 def add_rect_with_topleft_anchor(layer, x, y, w, h, **kwargs):
     return layer.add_rect(w, h, pos=(x+w/2, y+h/2), **kwargs)
