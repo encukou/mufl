@@ -30,6 +30,7 @@ mksprite(2, 1, 0.5, 0.5, 'magic')
 mksprite(2.5, 1, 0.5, 0.5, 'cube')
 mksprite(3, 1, 0.5, 0.5, 'nada')
 mksprite(3.5, 1, 0.5, 0.5, 'thing')
+mksprite(4, 1, 1, 1, 'magic_particle')
 mksprite(7, 1, 1, 1, 'flame')
 
 mksprite(5, 1, 2, 2, 'hypno')

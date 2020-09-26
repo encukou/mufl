@@ -69,7 +69,7 @@ You need Items to cast shadows.
 
 ------------------- 8< -------------------
 
-Cast  Arcane Missile
+Cast Arcane Missile
 magic ×30
 
 Deals 3d6 Arcane damage to target opponent,

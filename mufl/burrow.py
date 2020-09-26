@@ -368,6 +368,7 @@ class Burrowing:
         message1, sep, message2 = message.partition('\n')
         label = self.selcard_layer.add_label(
             message1,
+            font='kufam_medium',
             color=(*THAT_BLUE, 0),
             pos=(self.game.scene.width//2, selected_pos(0)[1]+16),
             align='center',
@@ -376,6 +377,7 @@ class Burrowing:
         animate(label, color=(*THAT_BLUE, 1))
         label = self.selcard_layer.add_label(
             message2,
+            font='kufam_medium',
             color=(*THAT_BLUE, 0),
             pos=(self.game.scene.width//2, selected_pos(0)[1]+64),
             align='center',

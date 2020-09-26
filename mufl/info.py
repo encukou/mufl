@@ -160,6 +160,15 @@ class Info:
                 pass
         clock.coro.run(animit())
 
+    @property
+    def message_assembled(self):
+        for i, want in zip(self.display, 'HELP'):
+            if i is None:
+                return False
+            code1, code2, label = self.things[i].split(':')
+            if label.upper() != want:
+                return False
+        return True
 
 @dataclass
 class InfoNode(ChainNode):

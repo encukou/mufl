@@ -5,6 +5,7 @@ from math import tau
 from random import uniform
 
 from wasabi2d import clock
+import numpy
 
 from .info import COLORS as BONUS_COLORS
 from .common import add_key_icon, add_space_instruction, KEY_NUMBERS, change_sprite_image, THAT_BLUE
@@ -13,6 +14,8 @@ from .thing import get_thing_sprite_info
 
 def add_rect_with_topleft_anchor(layer, x, y, w, h, **kwargs):
     return layer.add_rect(w, h, pos=(x+w/2, y+h/2), **kwargs)
+
+FIRE_POS = 484, 570
 
 
 @dataclass
@@ -50,7 +53,9 @@ class Island:
         self.main_layer = self.textbg_layer = self.game.scene.layers[10]
         self.top_layer = self.text_layer = self.game.scene.layers[11]
 
-        self.backdrop_layer.add_sprite('island', anchor_x=0, anchor_y=0)
+        self.input_frozen = False
+
+        self.backdrop_layer.add_sprite('island', anchor_x=0, anchor_y=80)
 
         self.last_selected = None
 
@@ -108,14 +113,13 @@ class Island:
             size=8,
         )
 
-        fire_pos = 484, 570
         self.flames = []
         for i in range(4):
-            s = self.effect_layer.add_sprite('flame', pos=fire_pos, scale=1/3, anchor_y=48, color=(1, 0, 0, .4))
+            s = self.effect_layer.add_sprite('flame', pos=FIRE_POS, scale=1/3, anchor_y=48, color=(1, 0, 0, .4))
             if i % 2:
                 s.scale_x = -1
             self.flames.append(s)
-            clock.coro.run(self.anim_flame(s, i, *fire_pos))
+            clock.coro.run(self.anim_flame(s, i, *FIRE_POS))
 
         pg = self.effect_layer.add_particle_group(
             'blur_circle', grow=1.0, max_age=3.2, spin_drag=1.1, gravity=-4,
@@ -126,11 +130,16 @@ class Island:
         pg.add_color_stop(3.2, (.5, .5, .5, 0))
         self.hypno_emitters = []
         em = pg.add_emitter(
-            rate=20, pos=fire_pos, pos_spread=(2, 2), vel=(2, -8),
+            rate=20, pos=FIRE_POS, pos_spread=(2, 2), vel=(2, -8),
             vel_spread=(4, 0.1), size=1.2, size_spread=0.1, spin_spread=tau,
         )
         self.hypno_emitter = em
 
+        self.shade_layer.add_rect(
+            self.game.scene.width, self.game.scene.height*2+2,
+            pos=(self.game.scene.width//2, -self.game.scene.height),
+            color=(1, 1, 1, 1),
+        )
         self.shadow_sprite = self.shade_layer.add_sprite(
             'island_shadow',
             pos=(self.game.scene.width//2, self.game.scene.height//2),
@@ -162,6 +171,8 @@ class Island:
         self.reset_display()
 
     def on_key_down(self, key):
+        if self.input_frozen:
+            return
         if key == key.ESCAPE:
             if self.last_selected is None:
                 exit()
@@ -326,3 +337,103 @@ class Island:
             self.shadow_sprite.color = 1, 1, 1, 0
             space_label.color = (*THAT_BLUE, space_label.color[-1])
         self.last_message = things
+
+    def fire_missile(self):
+        self.deselect()
+        self.game.info.magic -= 30
+        scene = self.game.scene
+        chain = scene.chain
+        camera = scene.camera
+        prev_pos = camera.pos
+        mask_fill = self.game.set_missile_chain()
+        clock.schedule(
+            lambda: animate(mask_fill, color=(1, 1, 1, 0), duration=2, tween='accelerate'),
+            2,
+            strong=True,
+        )
+        async def anim():
+            self.input_frozen = True
+            try:
+                missile_layer = scene.layers[1]
+                sparks_layer = scene.layers[2]
+                sprite = missile_layer.add_sprite(
+                    'blur_circle',
+                    pos=FIRE_POS,
+                    scale=1/6,
+                )
+                pg = sparks_layer.add_particle_group(
+                    'magic_particle', grow=0.9, max_age=3, spin_drag=1.1,
+                    gravity=numpy.array([0, -4]),
+                )
+                pg.add_color_stop(0, (1, 1, 1))
+                pg.add_color_stop(0.2, (0, 1, 1))
+                pg.add_color_stop(1, (1, 0, 1))
+                pg.add_color_stop(2, (1, 1, 0, 1))
+                pg.add_color_stop(3, (1, 1, 0, 0))
+                em = pg.add_emitter(
+                    rate=50, pos=FIRE_POS, pos_spread=(3, 3), vel=(0, 0),
+                    emit_angle_spread=tau,
+                    vel_spread=(16, 16), size=15, size_spread=5,
+                    spin_spread=tau/4,
+                )
+
+                duration = 8
+                async for t in clock.coro.frames(seconds=duration):
+                    print(t)
+                    t /= duration
+                    anit = t * t
+                    camera.pos = scene.width/2, scene.height/2 - anit * scene.height*2
+                    sprite.pos = em.pos = FIRE_POS[0], FIRE_POS[1] - anit * (scene.height*2 + 400)
+                    em.vel = 0, -t * 400
+                    em.rate = max(0, (.7 - t) * 50)
+                em.vel = 0, 0
+                pg.gravity = numpy.array([0, 200])
+                pg.emit(
+                    400, pos=em.pos, vel=(0, 0), vel_spread=(300, 300),
+                    spin_spread=tau/4,
+                    angle_spread=tau, size=20, size_spread=10,
+                )
+                sparks_layer.set_effect('trails', fade=0.5)
+                await animate(sprite, scale=3, color=(1, 1, 1, 0), duration=2, tween='decelerate')
+                await clock.coro.sleep(4)
+                cam_x, cam_y = camera.pos
+                if self.game.info.message_assembled:
+                    for i, line in enumerate((
+                        "The explosion, combined with your message,",
+                        "got the attention of a broom-mounted,",
+                        "teleport-savvy savior.",
+                        "You made it out alive and well – just with",
+                        "a lifetime ban on any more magic parties.",
+                    )):
+                        l = missile_layer.add_label(
+                            line,
+                            font='kufam_medium',
+                            align='center',
+                            pos=(cam_x, cam_y + i * 32),
+                            color=(1, 1, 1, 0),
+                            fontsize=15,
+                        )
+                        animate(l, color=(1, 1, 1, 1))
+                    l = missile_layer.add_label(
+                        'Congratulations!',
+                        font='kufam_medium',
+                        align='center',
+                        pos=(cam_x, cam_y - 64),
+                        color=(1, 1, 1, 1),
+                        fontsize=50,
+                    )
+                    animate(l, color=(1, 1, 1, 1))
+                    await clock.coro.sleep(3600)
+                duration = 2
+                async for t in clock.coro.frames(seconds=duration):
+                    t /= duration
+                    camera.pos = scene.width/2, scene.height/2 - (1-t) * scene.height*2
+                await animate(mask_fill, color=(1, 1, 1, 1), duration=.2, tween='accelerate')
+                sparks_layer.clear_effect()
+            finally:
+                scene.chain = chain
+                camera.pos = prev_pos
+                del scene.layers[1]
+                del scene.layers[2]
+                self.input_frozen = False
+        clock.coro.run(anim())

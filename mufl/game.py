@@ -18,6 +18,7 @@ class Game:
         self.fade_layer = self.scene.layers[30]
         self.info_layer1 = self.scene.layers[31]
         self.info_layer2 = self.scene.layers[32]
+        self.missile_mask = self.scene.layers[40]
 
         self.action_layers = chain.LayerRange(stop=5)
         self.fade_layers = chain.Layers([30])
@@ -56,8 +57,29 @@ class Game:
 
         self.return_to_island()
 
+    def set_missile_chain(self):
+        fill = chain.Fill((0, 0, 0, 1))
+        self.scene.chain = [
+            chain.Fill((0.835, 0.964, 1, 1)),
+            chain.Layers([6]),
+            chain.Mask(
+                paint=chain.Fill((0, 0, .2, .5)),
+                mask=chain.Layers([7]),
+                function='inside',
+            ),
+            chain.Mask(
+                paint=[chain.LayerRange(start=8, stop=11), self.info_node],
+                mask=fill,
+            ),
+            chain.Layers([1, 2]),
+        ]
+        return fill
+
     def go_do(self, idx):
         self.info.food -= 1
+        if idx == 4 and self.info.message_assembled:
+            self.island.fire_missile()
+            return
         self.activity = None
         for i in range(5):
             self.scene.layers.pop(i, None)
@@ -79,6 +101,8 @@ class Game:
                 self.go_burrow()
             elif idx == 3:
                 self.go_shadow()
+            elif idx == 4:
+                pass
             else:
                 await black
                 print('ERROR, unknown action')
