@@ -16,6 +16,7 @@ class Fishing:
 
     def __init__(self, game, on_finish):
         self.game = game
+        self.active = True
         fish_layer = game.scene.layers[1]
         hook_layer = game.scene.layers[2]
         hud_layer = game.scene.layers[3]
@@ -100,7 +101,7 @@ class Fish:
 
     async def coro(self):
         try:
-            while True:
+            while self.fishing.active:
                 start_x, start_y = self.group.pos
                 if start_x < -MAX_FISH_WIDTH or start_x > (self.fishing.scene.width + MAX_FISH_WIDTH):
                     for obj in self.group:
@@ -126,7 +127,7 @@ class Fish:
     async def move_fin(self):
         dur = 0.25
         max_angle = 0.4
-        while True:
+        while self.fishing.active:
             await animate(
                 self.fin_sprite,
                 angle=max_angle,
@@ -159,7 +160,7 @@ class FishSpawner:
 
     async def coro(self):
         await clock.coro.sleep(0.1)
-        while True:
+        while self.fishing.active:
             depth = abs(self.fishing.hook.sprite.y)
             if randrange(2):
                 x = 0 - MAX_FISH_WIDTH//2
@@ -178,9 +179,12 @@ class FishSpawner:
                 )
                 self.fishes.add(fish)
             await clock.coro.sleep(expovariate(self.height/100 + abs(self.fishing.hook.sprite.y/1000)))
+        self.task = None
 
     def stop(self):
-        self.task.cancel()
+        if self.task:
+            self.task.cancel()
+            self.task = None
 
 
 class Hook:

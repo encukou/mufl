@@ -19,6 +19,7 @@ class Game:
     def __init__(self):
         self.scene = Scene(title='Cast Away!', icon='logo', width=800, height=600)
         self.scene.background = 0.9, 0.9, 1.0
+        self.activity = None
 
         self.fade_layer = self.scene.layers[30]
         self.info_layer1 = self.scene.layers[31]
@@ -202,6 +203,8 @@ class Game:
         self.storage.save()
 
     def return_to_island(self):
+        if self.activity:
+            self.activity.active = False
         self.save()
         self.scene.layers.pop(40, None)
         self.activity = self.island
@@ -212,6 +215,7 @@ class Game:
         self.island.reset()
 
     def finish_activity(self, speedup=1, superfast=False, extra_delay=4, **bonus):
+        old_activity = self.activity
         self.activity = None
         set_music('main')
         self.save()
@@ -239,6 +243,8 @@ class Game:
                     await clock.coro.sleep(extra_delay)
                 self.info.give(sleep=1, **bonus)
                 await ani
+                if old_activity:
+                    old_activity.active = False
                 if self.fade_circ.scale:
                     await clock.coro.sleep(1)
                     await animate(self.fade_circ, scale=0, duration=self.fade_circ.scale, tween='accelerate')
